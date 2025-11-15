@@ -1,6 +1,9 @@
 import pygame
 import random
 from sys import exit
+import pygame_widgets
+from pygame_widgets.slider import Slider
+from pygame_widgets.toggle import Toggle
 
 #region GAME PROPERTIES AND DEBUG
 
@@ -20,6 +23,13 @@ current_menu = None
 callbacks = []
 bgm_loaded = False
 current_bgm = None
+hicontrast = False
+
+# SETTINGS
+
+bgm_volume = 1
+sfx_volume = 1
+
 
 #endregion
 
@@ -65,10 +75,14 @@ DUMMY_CHARACTER = [DUMMY_IDLE, DUMMY_FLINCHING]
 
 # FONT AND TEXT
 
-FONT_SIZE = 28
+fontsize = 28
 FONTFACE = "assets/fontface.ttf"
 
-font = pygame.font.Font(FONTFACE, FONT_SIZE)
+font = pygame.font.Font(FONTFACE, fontsize)
+
+TITLE_FONT = pygame.font.Font(FONTFACE, 40)
+SUBTITLE_FONT = pygame.font.Font(FONTFACE, 36)
+SMALLER_FONT = pygame.font.Font(FONTFACE, 20)
 
 screen.fill(WHITE) # change bg color to white
 pygame.display.set_caption("My game") # changes title of game
@@ -601,7 +615,7 @@ class Toast(pygame.sprite.Sprite):
     def draw(self):
         self.surface_ref.blit(self.image, self.rect)
         text = font.render(self.text, True, WHITE)
-        self.surface_ref.blit(text, (SCREEN_WIDTH / 2 - 250, 15))
+        self.surface_ref.blit(text, (SCREEN_WIDTH / 2 - 250, 45 - fontsize))
 
     def kill(self):
         if (self.on_kill_callback): self.on_kill_callback()
@@ -699,7 +713,7 @@ class HealthBar(pygame.sprite.Sprite):
         self.backimage.fill(GRAY)
 
         self.rect = self.image.get_rect()
-        self.rect.center = (offset[0], offset[1] + FONT_SIZE * 2)
+        self.rect.center = (offset[0], offset[1] + fontsize * 2)
         
         # attributes
         self.maxhealth = health
@@ -1168,6 +1182,9 @@ class BackgroundMusic(object):
     def play(self):
         pygame.mixer.music.play(-1) # play infinitely
         self.running = True
+
+    def set_volume(self, vol):
+        pygame.mixer.music.set_volume(vol)
     
     def pause(self):
         if (self.running): pygame.mixer.music.pause()
@@ -1193,6 +1210,7 @@ class SoundEffect(object):
             self.sound = pygame.mixer.Sound(sound_file.path)
         except:
             print(f"Could not locate audio resource: {sound_file.path}")
+        self.set_volume(sfx_volume)
 
     def play(self):
         if (self.sound): self.sound.play()
@@ -1212,6 +1230,16 @@ class SoundEffect(object):
 
 GAME_LENGTH = 120
 
+# SETTINGS SLIDERS
+
+MUSIC_SLIDER = Slider(screen, 400, 205, 200, 10, min=0, max=10, step=1, initial=5)
+SOUND_SLIDER = Slider(screen, 400, 275, 200, 10, min=0, max=10, step=1, initial=5)
+TEXT_SLIDER = Slider(screen, 530, 415, 200, 10, min=0, max=10, step=1, initial=5)
+HICONTRAST_BUTTON = Toggle(screen, 410, 345, 20, 10)
+
+SETTINGS_WIDGETS = [MUSIC_SLIDER, SOUND_SLIDER, TEXT_SLIDER, HICONTRAST_BUTTON]
+for w in SETTINGS_WIDGETS: w.hide()
+
 def change_bgm(new_bgm):
     global current_bgm
     if (current_bgm): current_bgm.kill()
@@ -1224,6 +1252,8 @@ def change_to_main_menu():
     global current_game 
     current_game = None
     change_bgm(MAIN_MENU_AUDIO)
+    
+    for w in SETTINGS_WIDGETS: w.hide()
 
 def load_char_menu():
     SCREENSWIPE.do_effect()
@@ -1234,7 +1264,22 @@ def change_to_char_menu():
     current_menu = CHARACTER_MENU
     global current_game 
     current_game = None
-    change_bgm(MAIN_MENU_AUDIO)
+    # change_bgm(MAIN_MENU_AUDIO)
+
+def load_settings_menu():
+    SCREENSWIPE.do_effect()
+    Callback(change_to_settings_menu, 15)
+
+def change_to_settings_menu():
+    global current_menu 
+    current_menu = SETTINGS_MENU
+    global current_game 
+    current_game = None
+    # change_bgm(MAIN_MENU_AUDIO)
+    Callback(show_settings_widgets, 10)
+
+def show_settings_widgets():
+    for w in SETTINGS_WIDGETS: w.show()
 
 def load_tutorial():
     SCREENSWIPE.do_effect()
@@ -1246,6 +1291,12 @@ def change_game_to_tutorial():
     global current_game 
     current_game = TUTORIAL_GAME
     change_bgm(TUTORIAL_AUDIO)
+
+def load_wills():
+    SCREENSWIPE.do_effect()
+    Callback(change_game_to_wills, 15)
+    Callback(countdown_sequence, 60)
+    Callback(disable_countdown_overlay, 243) 
 
 def load_mvb():
     SCREENSWIPE.do_effect()
@@ -1275,6 +1326,21 @@ def change_game_to_mvb():
     current_game.add_timer(GameTimer(screen))
     Callback(lambda: current_game.game_timer.start_timer(GAME_LENGTH), 240)
 
+def change_game_to_wills():
+    global current_menu 
+    current_menu = None
+    global current_game 
+    current_game = WILLS_GAME
+    COUNTDOWN.overlay_active = True
+
+    for player in current_game.players:
+        player.period_freeze(240)
+
+    change_bgm(WILLS_GAME_AUDIO)
+    
+    current_game.add_timer(GameTimer(screen))
+    Callback(lambda: current_game.game_timer.start_timer(GAME_LENGTH), 240)
+
 #endregion
 
 #region MAIN MENU
@@ -1285,8 +1351,8 @@ MAIN_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "a
 MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH / 2, 225), 10)
-MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_tutorial, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
-MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_mvb, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
+MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_settings_menu, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
+MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_wills, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
 MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_char_menu, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH / 2, 450), 10)
 
 MAIN_MENU.add_button(MAIN_MENU_TUTORIAL_BUTTON)
@@ -1297,9 +1363,6 @@ MAIN_MENU.add_button(MAIN_MENU_CHARACTER_BUTTON)
 
 #region CHARACTER MENU
 CHARACTER_MENU = Menu()
-
-TITLE_FONT = pygame.font.Font(FONTFACE, 40)
-SUBTITLE_FONT = pygame.font.Font(FONTFACE, 36)
 
 CHAR_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, CHARACTER_MENU)
 CHAR_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -1333,6 +1396,36 @@ for i in range(6):
     name_center_y = tl[1] - 15
     name_text = MenuText(name, (name_center_x, name_center_y), 10, screen, SUBTITLE_FONT, BLACK)
     CHARACTER_MENU.interactive_elements.append(name_text)
+
+#endregion
+
+#region SETTINGS MENU
+SETTINGS_MENU = Menu()
+
+SETTINGS_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("SETTINGS_MENU_BACKGROUND", "assets/settings_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, SETTINGS_MENU)
+SETTINGS_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+SETTINGS_HEADER = MenuText("SETTINGS", (SCREEN_WIDTH / 2, 100), 10, screen, TITLE_FONT, BLACK)
+SETTINGS_MENU.interactive_elements.append(SETTINGS_HEADER)
+
+MUSIC_HEADER = MenuText("MUSIC:", (250, 210), 10, screen, SUBTITLE_FONT, BLACK)
+SETTINGS_MENU.interactive_elements.append(MUSIC_HEADER)
+
+SOUND_HEADER = MenuText("SOUND:", (250, 280), 10, screen, SUBTITLE_FONT, BLACK)
+SETTINGS_MENU.interactive_elements.append(SOUND_HEADER)
+
+HICONTRAST_HEADER = MenuText("HIGH CONTRAST:", (250, 350), 10, screen, SUBTITLE_FONT, BLACK)
+SETTINGS_MENU.interactive_elements.append(HICONTRAST_HEADER)
+
+TEXT_HEADER = MenuText("TEXT SIZE:", (250, 420), 10, screen, SUBTITLE_FONT, BLACK)
+TEXT_SAMPLE_1 = MenuText("SMALL", (490, 420), 10, screen, SMALLER_FONT, BLACK)
+TEXT_SAMPLE_2 = MenuText("LARGE", (800, 420), 10, screen, TITLE_FONT, BLACK)
+SETTINGS_MENU.interactive_elements.append(TEXT_HEADER)
+SETTINGS_MENU.interactive_elements.append(TEXT_SAMPLE_1)
+SETTINGS_MENU.interactive_elements.append(TEXT_SAMPLE_2)
+
+BACK_BUTTON = Button(screen, change_to_main_menu, StaticSprite("BACK_BUTTON", "assets/button_placeholder.png"), (100, 100), 10)
+SETTINGS_MENU.add_button(BACK_BUTTON)
 
 #endregion
 
@@ -1405,6 +1498,35 @@ MVB_GAME.add_players([MVB_PLAYER1, MVB_PLAYER2], [HITBOX_MVB_PLAYER1, HITBOX_MVB
 MVB_GAME.load_map(MVB_MAP)
 #endregion
 
+#region WILLS_GAME
+WILLS_GAME = Game(False)
+WILLS_GAME_AUDIO = BackgroundMusic(SoundFile("WILLS_MAP_BGM", "audio/wills_loop.mp3"))
+
+WILLS_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
+WILLS_P2_SPAWN_POSITION = (4 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
+
+WILLS_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, WILLS_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
+HITBOX_WILLS_PLAYER1 = Hitbox(screen, WILLS_PLAYER1)
+
+WILLS_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, WILLS_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
+HITBOX_WILLS_PLAYER2 = Hitbox(screen, WILLS_PLAYER2)
+
+WILLS_PLAYER1.attach_opponent(WILLS_PLAYER2, HITBOX_WILLS_PLAYER2)
+WILLS_PLAYER2.attach_opponent(WILLS_PLAYER1, HITBOX_WILLS_PLAYER1)
+
+WILLS_BACKGROUND = SpritedGameObject(StaticSprite("WILLS_BACKGROUND", "assets/wills_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
+WILLS_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+WILLS_IGO = []
+WILLS_SGO = [WILLS_BACKGROUND]
+WILLS_GROUND_Y = 494
+ground_y = MVB_GROUND_Y
+WILLS_MAP = Map("WILLS_MAP", WILLS_IGO, WILLS_SGO, WILLS_GROUND_Y)
+
+WILLS_GAME.add_players([WILLS_PLAYER1, WILLS_PLAYER2], [HITBOX_WILLS_PLAYER1, HITBOX_WILLS_PLAYER2])
+WILLS_GAME.load_map(WILLS_MAP)
+#endregion
+
 #region TEST_GAME
 
 # TESTING GAME
@@ -1446,10 +1568,11 @@ GAME.add_players([PLAYER1, PLAYER2], [HITBOX_PLAYER1, HITBOX_PLAYER2])
 #region FRAMELOOP
 
 change_to_main_menu()
-print(pygame.font.get_fonts())
 
 while True:
-    for event in pygame.event.get():
+    events = pygame.event.get()
+
+    for event in events:
         if event.type == pygame.QUIT:
             if (current_bgm): current_bgm.kill()
             pygame.quit()
@@ -1463,12 +1586,18 @@ while True:
     # game code
     screen.fill(WHITE)
 
-    # debug
-    # current_game = TUTORIAL_GAME
-    #
-
     if (current_menu):
         current_menu.redraw_frame()
+
+        if (current_menu == SETTINGS_MENU):
+            hicontrast = HICONTRAST_BUTTON.getValue()
+            bgm_volume = 1 + (MUSIC_SLIDER.getValue() - 5) * 0.2
+            sfx_volume = 1 + (SOUND_SLIDER.getValue() - 5) * 0.2
+            fontsize = 28 + (TEXT_SLIDER.getValue() - 5) * 2
+            font = pygame.font.Font(FONTFACE, fontsize)
+
+            if (current_bgm): current_bgm.set_volume(bgm_volume)
+
     elif (current_game):
         current_game.redraw_frame()
 
@@ -1477,6 +1606,7 @@ while True:
 
     SCREENSWIPE.draw()
     COUNTDOWN.draw()
+    pygame_widgets.update(events)
 
     pygame.display.update()
     clock.tick(FPS)
