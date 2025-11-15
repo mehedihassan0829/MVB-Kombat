@@ -30,13 +30,13 @@ hicontrast = False
 bgm_volume = 1
 sfx_volume = 1
 
-
 #endregion
 
 # SPRITES AND ANIMATION
 
 ANIMATION_LATENCY = 10 # every ANIMATION_LATENCY frames, change animation frame
-X_OFFSET = 20
+X_OFFSET_RTL = 30
+X_OFFSET_LTR = 25
 
 # DIRECTIONS
 
@@ -92,7 +92,7 @@ GRAVITY = 1
 # PLAYER MODIFIABLE ATTRIBUTES
 
 PLAYER_SPEED = 7
-PLAYER_JUMPSPEED = -18
+PLAYER_JUMPSPEED = -16
 PLAYER_SPRITE_HEIGHT = 128
 PLAYER_SPRITE_WIDTH = 128
 PLAYER_HEALTH = 100
@@ -102,7 +102,7 @@ PLAYER_HITBOX_HEIGHT = 60
 
 ground_y = (SCREEN_HEIGHT + PLAYER_SPRITE_HEIGHT) / 2
 
-PLAYER1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 3, ground_y)
+PLAYER1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 PLAYER1_KEYLEFT = pygame.K_a
 PLAYER1_KEYRIGHT = pygame.K_d
 PLAYER1_KEYJUMP = pygame.K_w
@@ -208,7 +208,7 @@ class Player(pygame.sprite.Sprite):
 
         keystate = pygame.key.get_pressed()
 
-        # JUMPING ANF FALLING
+        # JUMPING AND FALLING
         grounded = self.check_grounded()
 
         # if not jumping and not grounded, start falling
@@ -246,19 +246,49 @@ class Player(pygame.sprite.Sprite):
 
         # move based on key input
         if keystate[self.key_left]:
+            move_x = -self.get_move_left()
+            self.direction_facing = LEFT
+            
             if (self.direction_facing == RIGHT):
-                # we have switched directions
                 self.image = pygame.transform.flip(self.image, 1, 0)
-                self.rect.move_ip(-X_OFFSET, 0)
-            self.rect.move_ip(-self.get_move_left(), 0)
+                self.rect.move_ip(-X_OFFSET_RTL, 0)
+            
+            if grounded:
+                step_height = 15
+                predicted_rect = self.rect.copy()
+                predicted_rect.move_ip(move_x, 0)
+                
+                stepped_up = False
+                for obj in self.game_ref.interactable_game_objects:
+                    if predicted_rect.colliderect(obj.rect):
+                        predicted_rect_up = predicted_rect.copy()
+                        predicted_rect_up.move_ip(0, -step_height)
+                        
+                        if (self.rect.bottom <= obj.rect.top + step_height) and \
+                           (predicted_rect_up.bottom >= obj.rect.top) and \
+                           (predicted_rect_up.left < obj.rect.right) and \
+                           (predicted_rect_up.right > obj.rect.left):
+                            
+                            self.rect.move_ip(move_x, -(self.rect.bottom - obj.rect.top))
+                            self.rect.bottom = obj.rect.top
+                            stepped_up = True
+                            break
+                
+                if not stepped_up:
+                    self.rect.move_ip(move_x, 0)
+            
+            else:
+                self.rect.move_ip(move_x, 0)
+
             if (self.tutorial_ref): 
                 self.tutorial_ref.do_tutorial()
                 self.tutorial_ref.has_moved = True
+
         if keystate[self.key_right]:
             if (self.direction_facing == LEFT):
                 # we have switched directions
                 self.image = pygame.transform.flip(self.image, 1, 0)
-                self.rect.move_ip(X_OFFSET, 0)
+                self.rect.move_ip(X_OFFSET_LTR, 0)
             self.rect.move_ip(self.get_move_right(), 0)
             if (self.tutorial_ref): 
                 self.tutorial_ref.do_tutorial()
@@ -360,7 +390,6 @@ class Player(pygame.sprite.Sprite):
     def jump(self):
         if not self.is_jumping:
             self.is_jumping = True
-            # JUMP_POWER should be a negative value (e.g., -20) to move up
             self.vertical_velocity = PLAYER_JUMPSPEED 
             self.current_animation = "JUMPING"
             if (not self.sprite_handler.anims.get(self.current_animation)): return
@@ -1285,6 +1314,11 @@ def load_tutorial():
     SCREENSWIPE.do_effect()
     Callback(change_game_to_tutorial, 15)
 
+    global ground_y
+    ground_y = TUTORIAL_GROUND_Y
+
+    TUTORIAL_PLAYER.reset_position()
+
 def change_game_to_tutorial():
     global current_menu 
     current_menu = None
@@ -1298,11 +1332,29 @@ def load_wills():
     Callback(countdown_sequence, 60)
     Callback(disable_countdown_overlay, 243) 
 
+    global ground_y
+    ground_y = WILLS_GROUND_Y
+
+    for player in WILLS_GAME.players:
+        player.reset_position()
+    
+    WILLS_PLAYER1.jump()
+    WILLS_PLAYER2.jump()
+
 def load_mvb():
     SCREENSWIPE.do_effect()
     Callback(change_game_to_mvb, 15)
     Callback(countdown_sequence, 60)
     Callback(disable_countdown_overlay, 243)
+
+    global ground_y
+    ground_y = MVB_GROUND_Y
+
+    for player in MVB_GAME.players:
+        player.reset_position()
+
+    MVB_PLAYER1.jump()
+    MVB_PLAYER2.jump()
 
 def countdown_sequence():
     COUNTDOWN.current_count = 0
@@ -1450,18 +1502,23 @@ TUTORIAL_BACKGROUND = SpritedGameObject(StaticSprite("TUTORIAL_BACKGROUND", "ass
 TUTORIAL_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 TUTORIAL_PLATFORM_UPSTAIRS = Platform((SCREEN_WIDTH, 16), (SCREEN_WIDTH / 2, 290), screen)
-TUTORIAL_PLATFORM_STAIRS1 = Platform((50, 16), (30, 345), screen)
-TUTORIAL_PLATFORM_STAIRS2 = Platform((50, 16), (50, 365), screen)
-TUTORIAL_PLATFORM_STAIRS3 = Platform((50, 16), (80, 385), screen)
-TUTORIAL_PLATFORM_STAIRS4 = Platform((50, 16), (150, 407), screen)
-TUTORIAL_PLATFORM_STAIRS5 = Platform((50, 16), (180, 425), screen)
-TUTORIAL_PLATFORM_STAIRS6 = Platform((50, 16), (210, 445), screen)
-TUTORIAL_PLATFORM_STAIRS7 = Platform((50, 16), (240, 465), screen)
-TUTORIAL_PLATFORM_STAIRS8 = Platform((50, 16), (310, 485), screen)
-TUTORIAL_PLATFORM_STAIRS9 = Platform((50, 16), (340, 505), screen)
-TUTORIAL_PLATFORM_STAIRS10 = Platform((50, 16), (370, 525), screen)
+TUTORIAL_PLATFORM_STAIRS1 = Platform((30, 16), (0, 345), screen)
+TUTORIAL_PLATFORM_STAIRS2 = Platform((30, 16), (25, 360), screen)
+TUTORIAL_PLATFORM_STAIRS3 = Platform((30, 16), (50, 375), screen)
+TUTORIAL_PLATFORM_STAIRS4 = Platform((30, 16), (75, 390), screen)
+TUTORIAL_PLATFORM_STAIRS5 = Platform((60, 16), (120, 405), screen)
+TUTORIAL_PLATFORM_STAIRS6 = Platform((30, 16), (155, 420), screen)
+TUTORIAL_PLATFORM_STAIRS7 = Platform((30, 16), (180, 435), screen)
+TUTORIAL_PLATFORM_STAIRS8 = Platform((30, 16), (205, 450), screen)
+TUTORIAL_PLATFORM_STAIRS9 = Platform((30, 16), (230, 465), screen)
+TUTORIAL_PLATFORM_STAIRS10 = Platform((60, 16), (275, 480), screen)
+TUTORIAL_PLATFORM_STAIRS11 = Platform((30, 16), (310, 495), screen)
+TUTORIAL_PLATFORM_STAIRS12 = Platform((30, 16), (335, 510), screen)
+TUTORIAL_PLATFORM_STAIRS13 = Platform((30, 16), (360, 525), screen)
+TUTORIAL_PLATFORM_STAIRS14 = Platform((30, 16), (385, 540), screen)
+TUTORIAL_PLATFORM_STAIRS15 = Platform((30, 16), (400, 555), screen)
 
-TUTORIAL_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9, TUTORIAL_PLATFORM_STAIRS10]
+TUTORIAL_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9, TUTORIAL_PLATFORM_STAIRS10, TUTORIAL_PLATFORM_STAIRS11, TUTORIAL_PLATFORM_STAIRS12, TUTORIAL_PLATFORM_STAIRS13, TUTORIAL_PLATFORM_STAIRS14, TUTORIAL_PLATFORM_STAIRS15]
 TUTORIAL_SGO = [TUTORIAL_BACKGROUND]
 TUTORIAL_GROUND_Y = 494
 ground_y = TUTORIAL_GROUND_Y
@@ -1500,10 +1557,10 @@ MVB_GAME.load_map(MVB_MAP)
 
 #region WILLS_GAME
 WILLS_GAME = Game(False)
-WILLS_GAME_AUDIO = BackgroundMusic(SoundFile("WILLS_MAP_BGM", "audio/wills_loop.mp3"))
+WILLS_GAME_AUDIO = BackgroundMusic(SoundFile("WILLS_MAP_BGM", "audio/wills_loop.ogg"))
 
 WILLS_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
-WILLS_P2_SPAWN_POSITION = (4 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
+WILLS_P2_SPAWN_POSITION = (3.5 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 
 WILLS_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, WILLS_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
 HITBOX_WILLS_PLAYER1 = Hitbox(screen, WILLS_PLAYER1)
@@ -1517,10 +1574,21 @@ WILLS_PLAYER2.attach_opponent(WILLS_PLAYER1, HITBOX_WILLS_PLAYER1)
 WILLS_BACKGROUND = SpritedGameObject(StaticSprite("WILLS_BACKGROUND", "assets/wills_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
 WILLS_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-WILLS_IGO = []
+WILLS_ROAD_BUILDING1 = Platform((170, 16), (595, 225), screen)
+WILLS_ROAD_BUILDING2 = Platform((170, 16), (765, 255), screen)
+WILLS_ROAD_BUILDING3 = Platform((170, 16), (935, 305), screen)
+WILLS_MEM_PLAT1 = Platform((250, 16), (300, 330), screen)
+WILLS_ROAD_PLAT1 = Platform((790, 16), (100, 445), screen)
+WILLS_ROAD_PLAT2 = Platform((80, 16), (530, 460), screen)
+WILLS_ROAD_PLAT3 = Platform((80, 16), (610, 475), screen)
+WILLS_ROAD_PLAT4 = Platform((80, 16), (690, 490), screen)
+WILLS_ROAD_PLAT5 = Platform((80, 16), (770, 505), screen)
+WILLS_ROAD_PLAT6 = Platform((200, 16), (900, 520), screen)
+
+WILLS_IGO = [WILLS_ROAD_BUILDING1, WILLS_ROAD_BUILDING2, WILLS_ROAD_BUILDING3, WILLS_MEM_PLAT1, WILLS_ROAD_PLAT1, WILLS_ROAD_PLAT2, WILLS_ROAD_PLAT3, WILLS_ROAD_PLAT4, WILLS_ROAD_PLAT5, WILLS_ROAD_PLAT6]
 WILLS_SGO = [WILLS_BACKGROUND]
-WILLS_GROUND_Y = 494
-ground_y = MVB_GROUND_Y
+WILLS_GROUND_Y = 450
+ground_y = WILLS_GROUND_Y
 WILLS_MAP = Map("WILLS_MAP", WILLS_IGO, WILLS_SGO, WILLS_GROUND_Y)
 
 WILLS_GAME.add_players([WILLS_PLAYER1, WILLS_PLAYER2], [HITBOX_WILLS_PLAYER1, HITBOX_WILLS_PLAYER2])
