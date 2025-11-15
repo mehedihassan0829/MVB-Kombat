@@ -396,6 +396,10 @@ class Player(pygame.sprite.Sprite):
 
         self.do_animation_and_reset("FLINCHING")
 
+    def period_freeze(self, time):
+        self.frozen = True
+        Callback(self.unfreeze, time)
+
     def unfreeze(self):
         self.frozen = False
         
@@ -1109,6 +1113,9 @@ def change_game_to_mvb():
     current_game = MVB_GAME
     COUNTDOWN.overlay_active = True
 
+    for player in current_game.players:
+        player.period_freeze(240)
+
 #region MAIN MENU
 MAIN_MENU = Menu()
 
@@ -1171,7 +1178,7 @@ TUTORIAL_GAME.load_map(TUTORIAL_MAP)
 #region MVB_GAME
 MVB_GAME = Game(False)
 
-MVB_P1_SPAWN_POSITION = MVB_SPAWN_POSITION
+MVB_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 MVB_P2_SPAWN_POSITION = MVB_DUMMY1_SPAWN_POSITION
 
 MVB_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, MVB_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
