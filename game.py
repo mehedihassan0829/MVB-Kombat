@@ -388,6 +388,8 @@ class Player(pygame.sprite.Sprite):
         self.health -= amount
         print(f"player damaged {amount} hp and now has {self.health} hp left")
 
+        HitNotif(amount, self.opponent_ref, self.surface_ref)
+
         # freeze for stun period
         self.frozen = True
         Callback(self.unfreeze, stun_time)
@@ -404,6 +406,35 @@ PUNCH_ATTACK_WIDTH = 40
 PUNCH_ATTACK_HEIGHT = 20
 PUNCH_ATTACK_OFFSET_X = -40
 PUNCH_ATTACK_OFFSET_Y = 210
+
+class HitNotif(pygame.sprite.Sprite):
+    def __init__(self, damage, player, surface):
+        super().__init__()
+        self.damage = damage
+        self.surface_ref = surface
+        self.player_ref = player
+        self.pos_x = player.rect.x
+        self.pos_y = player.rect.y
+
+        self.repeat = Repeat(self.draw, 1)
+        Callback(self.kill, 60)
+
+    def move_random(self):
+        if (self.player_ref.direction_facing == RIGHT):
+            self.pos_x += random.randint(-1, 3)
+        else:
+            self.pos_x -= random.randint(-1, 3)
+        self.pos_y -= random.randint(1, 2)
+
+    def draw(self):
+        self.move_random()
+        text = font.render(f"{int(self.damage)}", True, RED)
+        self.surface_ref.blit(text, (self.pos_x, self.pos_y))
+
+    def kill(self):
+        if (self.repeat): self.repeat.kill()
+        self.repeat = None
+        super().kill()
 
 class PunchAttack(pygame.sprite.Sprite):
     def __init__(self, player, opponent_hitbox, direction, surface, game):
@@ -553,7 +584,7 @@ class Toast(pygame.sprite.Sprite):
         self.image = pygame.Surface((TOAST_WIDTH, TOAST_HEIGHT))
         self.image.fill(GRAY)
         self.rect = self.image.get_rect()
-        self.rect.center = (SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30)
+        self.rect.center = (SCREEN_WIDTH / 2, 30)
         self.text = text
         self.surface_ref = surface
         self.display_time = display_time
@@ -565,7 +596,7 @@ class Toast(pygame.sprite.Sprite):
     def draw(self):
         self.surface_ref.blit(self.image, self.rect)
         text = font.render(self.text, True, WHITE)
-        self.surface_ref.blit(text, (SCREEN_WIDTH / 2 - 250, SCREEN_HEIGHT - 40))
+        self.surface_ref.blit(text, (SCREEN_WIDTH / 2 - 250, 20))
 
     def kill(self):
         if (self.on_kill_callback): self.on_kill_callback()
@@ -585,6 +616,12 @@ class Button(pygame.sprite.Sprite):
 
     def update(self):
         self.surface_ref.blit(self.image, self.rect)
+
+    def scale(self, multiplier):
+        self.image = pygame.transform.scale(self.image, (self.image.get_width() * multiplier, self.image.get_height() * multiplier))
+
+    def change_dimensions(self, new_dimensions):
+        self.image = pygame.transform.scale(self.image, new_dimensions)
 
     def handle_click(self, event):
         if (not self.is_active): return
@@ -942,7 +979,7 @@ class Screenswipe(pygame.sprite.Sprite):
         self.repeat = Repeat(self.update, 1)
 
     def reset(self):
-        self.repeat.kill()
+        if (self.repeat): self.repeat.kill()
         self.repeat = None
         self.rect.center = (SCREEN_WIDTH / 2 + 1600, SCREEN_HEIGHT / 2)
 
@@ -964,9 +1001,15 @@ def change_game_to_tutorial():
     global current_game 
     current_game = TUTORIAL_GAME
 
-MAIN_MENU_BUTTON1 = Button(screen, load_tutorial, StaticSprite("MAIN_MENU_BUTTON1", "assets/test_button.png"), (SCREEN_WIDTH / 2, 300), 10)
+MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH / 2, 225), 10)
+MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_tutorial, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
+MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_tutorial, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
+MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_tutorial, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH / 2, 450), 10)
 
-MAIN_MENU.add_button(MAIN_MENU_BUTTON1)
+MAIN_MENU.add_button(MAIN_MENU_TUTORIAL_BUTTON)
+MAIN_MENU.add_button(MAIN_MENU_SINGLEPLAYER_BUTTON)
+MAIN_MENU.add_button(MAIN_MENU_MULTIPLAYER_BUTTON)
+MAIN_MENU.add_button(MAIN_MENU_CHARACTER_BUTTON)
 #endregion
 
 #region TUTORIAL GAME
@@ -983,24 +1026,26 @@ TUTORIAL_DUMMY1 = Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY,
 HITBOX_TUTORIAL_DUMMY1 = Hitbox(screen, TUTORIAL_DUMMY1)
 
 TUTORIAL_PLAYER.attach_opponent(TUTORIAL_DUMMY1, HITBOX_TUTORIAL_DUMMY1)
+TUTORIAL_DUMMY1.attach_opponent(TUTORIAL_PLAYER, HITBOX_TUTORIAL_PLAYER)
 
-TUTORIAL_BACKGROUND = SpritedGameObject(StaticSprite("TUTORIAL_BACKGROUND", "assets/mvb_draft_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
+TUTORIAL_BACKGROUND = SpritedGameObject(StaticSprite("TUTORIAL_BACKGROUND", "assets/mvb_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
 TUTORIAL_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-TUTORIAL_PLATFORM_UPSTAIRS = Platform((SCREEN_WIDTH, 16), (SCREEN_WIDTH / 2, 226), screen)
-TUTORIAL_PLATFORM_STAIRS1 = Platform((100, 16), (200, 300), screen)
-TUTORIAL_PLATFORM_STAIRS2 = Platform((100, 16), (250, 320), screen)
-TUTORIAL_PLATFORM_STAIRS3 = Platform((100, 16), (300, 340), screen)
-TUTORIAL_PLATFORM_STAIRS4 = Platform((100, 16), (350, 360), screen)
-TUTORIAL_PLATFORM_STAIRS5 = Platform((100, 16), (400, 380), screen)
-TUTORIAL_PLATFORM_STAIRS6 = Platform((100, 16), (450, 400), screen)
-TUTORIAL_PLATFORM_STAIRS7 = Platform((100, 16), (500, 420), screen)
-TUTORIAL_PLATFORM_STAIRS8 = Platform((100, 16), (550, 440), screen)
-TUTORIAL_PLATFORM_STAIRS9 = Platform((100, 16), (600, 460), screen)
+TUTORIAL_PLATFORM_UPSTAIRS = Platform((SCREEN_WIDTH, 16), (SCREEN_WIDTH / 2, 290), screen)
+TUTORIAL_PLATFORM_STAIRS1 = Platform((50, 16), (30, 345), screen)
+TUTORIAL_PLATFORM_STAIRS2 = Platform((50, 16), (50, 365), screen)
+TUTORIAL_PLATFORM_STAIRS3 = Platform((50, 16), (80, 385), screen)
+TUTORIAL_PLATFORM_STAIRS4 = Platform((50, 16), (150, 407), screen)
+TUTORIAL_PLATFORM_STAIRS5 = Platform((50, 16), (180, 425), screen)
+TUTORIAL_PLATFORM_STAIRS6 = Platform((50, 16), (210, 445), screen)
+TUTORIAL_PLATFORM_STAIRS7 = Platform((50, 16), (240, 465), screen)
+TUTORIAL_PLATFORM_STAIRS8 = Platform((50, 16), (310, 485), screen)
+TUTORIAL_PLATFORM_STAIRS9 = Platform((50, 16), (340, 505), screen)
+TUTORIAL_PLATFORM_STAIRS10 = Platform((50, 16), (370, 525), screen)
 
-TUTORIAL_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9]
+TUTORIAL_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9, TUTORIAL_PLATFORM_STAIRS10]
 TUTORIAL_SGO = [TUTORIAL_BACKGROUND]
-TUTORIAL_GROUND_Y = 420
+TUTORIAL_GROUND_Y = 494
 ground_y = TUTORIAL_GROUND_Y
 TUTORIAL_MAP = Map("TUTORIAL_MAP", TUTORIAL_IGO, TUTORIAL_SGO, TUTORIAL_GROUND_Y)
 
