@@ -65,10 +65,10 @@ DUMMY_CHARACTER = [DUMMY_IDLE, DUMMY_FLINCHING]
 
 # FONT AND TEXT
 
-FONT_SIZE = 16
-FONTFACE = "Consolas"
+FONT_SIZE = 28
+FONTFACE = "assets/fontface.ttf"
 
-font = pygame.font.SysFont(FONTFACE, FONT_SIZE)
+font = pygame.font.Font(FONTFACE, FONT_SIZE)
 
 screen.fill(WHITE) # change bg color to white
 pygame.display.set_caption("My game") # changes title of game
@@ -560,11 +560,10 @@ class Repeat():
         callbacks.remove(self)
 
 class Timer():
-    def __init__(self, callback_fun, time_in_seconds, game):
+    def __init__(self, callback_fun, time_in_seconds):
         self.callback = callback_fun
         self.time_in_seconds = time_in_seconds
         self.repeat = None
-        self.game_ref = game
 
     def tick(self):
         self.time_in_seconds -= 1
@@ -588,7 +587,7 @@ class Toast(pygame.sprite.Sprite):
     def __init__(self, surface, text, display_time, game, on_kill_callback):
         super().__init__()
         self.image = pygame.Surface((TOAST_WIDTH, TOAST_HEIGHT))
-        self.image.fill(GRAY)
+        self.image.fill(BLACK)
         self.rect = self.image.get_rect()
         self.rect.center = (SCREEN_WIDTH / 2, 30)
         self.text = text
@@ -602,7 +601,7 @@ class Toast(pygame.sprite.Sprite):
     def draw(self):
         self.surface_ref.blit(self.image, self.rect)
         text = font.render(self.text, True, WHITE)
-        self.surface_ref.blit(text, (SCREEN_WIDTH / 2 - 250, 20))
+        self.surface_ref.blit(text, (SCREEN_WIDTH / 2 - 250, 15))
 
     def kill(self):
         if (self.on_kill_callback): self.on_kill_callback()
@@ -646,6 +645,42 @@ class Menu(object):
     def redraw_frame(self):
         for obj in sorted(self.interactive_elements, key=(lambda x: x.z), reverse=False):
             obj.update()
+
+TIMER_WIDTH = 64
+TIMER_HEIGHT = 32
+TIMER_X = SCREEN_WIDTH / 2
+TIMER_Y = 60
+
+class GameTimer(object):
+    def __init__(self, surface):
+        self.timer = None
+        self.show = False
+        self.surface_ref = surface
+        self.image = pygame.Surface((TIMER_WIDTH, TIMER_HEIGHT))
+        self.rect = self.image.get_rect()
+        self.rect.center = (TIMER_X, TIMER_Y)
+        self.image.fill(BLACK)
+
+    def show_timer(self):
+        self.show = True
+
+    def hide_timer(self):
+        self.show = False
+
+    def start_timer(self, time_in_seconds):
+        self.timer = Timer(self.timer_end, time_in_seconds)
+        self.timer.start_ticking()
+        self.show_timer()
+
+    def timer_end(self):
+        self.hide_timer()
+
+    def update(self):
+        if (self.show):
+            if (self.timer.get_time() <= 60): self.image.fill(RED)
+            text = font.render(f"{self.timer.get_time()}s", True, WHITE)
+            self.surface_ref.blit(self.image, self.rect)
+            self.surface_ref.blit(text, (TIMER_X - 16, TIMER_Y - 16))
 
 #endregion
 
@@ -847,6 +882,20 @@ class SpritedMenuObject(pygame.sprite.Sprite):
         self.menu_ref.interactive_elements.remove(self)
         self.kill()
 
+class MenuText(object):
+    def __init__(self, text, offset, z_layer, surface, text_font, color):
+        self.text = text
+        self.offset = offset
+        self.z = z_layer
+        self.surface_ref = surface
+        self.font = text_font
+        self.color = color
+        self.image = self.font.render(self.text, True, self.color)
+        self.rect = self.image.get_rect(center=self.offset)
+
+    def update(self):
+        self.surface_ref.blit(self.image, self.rect)
+
 # GAME
 
 class Map(object):
@@ -866,6 +915,7 @@ class Game(object):
         self.map_ref = None
         self.tutorial = tutorial
         self.active_toast = None
+        self.game_timer = None
 
         # PLAYERS
         self.players = []
@@ -876,6 +926,9 @@ class Game(object):
         self.player_hitboxes.extend(player_hitboxes)
         for player in self.players:
             player.reset_position()
+
+    def add_timer(self, game_timer):
+        self.game_timer = game_timer
 
     def load_map(self, map):
         self.map_ref = map
@@ -890,7 +943,6 @@ class Game(object):
             sgo.attach_to_game()
         
     def redraw_frame(self):
-
         foreground = []
         background = []
 
@@ -924,8 +976,11 @@ class Game(object):
 
         if (self.tutorial): TUTORIAL.do_tutorial()
 
-        if self.active_toast:
+        if (self.active_toast):
             self.active_toast.draw()
+        
+        if (self.game_timer):
+            self.game_timer.update()
 
 class Tutorial(object):
     def __init__(self, surface, game):
@@ -1155,6 +1210,8 @@ class SoundEffect(object):
 
 #region GLOBAL FUNCTIONS
 
+GAME_LENGTH = 120
+
 def change_bgm(new_bgm):
     global current_bgm
     if (current_bgm): current_bgm.kill()
@@ -1164,6 +1221,17 @@ def change_bgm(new_bgm):
 def change_to_main_menu():
     global current_menu 
     current_menu = MAIN_MENU
+    global current_game 
+    current_game = None
+    change_bgm(MAIN_MENU_AUDIO)
+
+def load_char_menu():
+    SCREENSWIPE.do_effect()
+    Callback(change_to_char_menu, 15)
+
+def change_to_char_menu():
+    global current_menu 
+    current_menu = CHARACTER_MENU
     global current_game 
     current_game = None
     change_bgm(MAIN_MENU_AUDIO)
@@ -1203,6 +1271,9 @@ def change_game_to_mvb():
         player.period_freeze(240)
 
     change_bgm(MVB_GAME_AUDIO)
+    
+    current_game.add_timer(GameTimer(screen))
+    Callback(lambda: current_game.game_timer.start_timer(GAME_LENGTH), 240)
 
 #endregion
 
@@ -1216,12 +1287,53 @@ MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH / 2, 225), 10)
 MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_tutorial, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
 MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_mvb, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
-MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_tutorial, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH / 2, 450), 10)
+MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_char_menu, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH / 2, 450), 10)
 
 MAIN_MENU.add_button(MAIN_MENU_TUTORIAL_BUTTON)
 MAIN_MENU.add_button(MAIN_MENU_SINGLEPLAYER_BUTTON)
 MAIN_MENU.add_button(MAIN_MENU_MULTIPLAYER_BUTTON)
 MAIN_MENU.add_button(MAIN_MENU_CHARACTER_BUTTON)
+#endregion
+
+#region CHARACTER MENU
+CHARACTER_MENU = Menu()
+
+TITLE_FONT = pygame.font.Font(FONTFACE, 40)
+SUBTITLE_FONT = pygame.font.Font(FONTFACE, 36)
+
+CHAR_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, CHARACTER_MENU)
+CHAR_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+CHAR_MENU_TITLE = MenuText("CHARACTER MENU", (SCREEN_WIDTH / 2, 50), 10, screen, TITLE_FONT, BLACK)
+CHARACTER_MENU.interactive_elements.append(CHAR_MENU_TITLE)
+
+# Define button layout from prototype
+BUTTON_COORDINATES = [
+    (143, 138), (436, 138), (729, 138),
+    (143, 386), (436, 386), (729, 386)
+]
+
+BUTTON_SIZE = (128, 128)
+
+CHAR_NAMES = ["SHADI", "IMAD", "MEHEDI", "LUCA", "NOOR", "HAMA"]
+char_button_asset = StaticSprite("CHAR_BUTTON", "assets/button_placeholder.png")
+
+for i in range(6):
+    name = CHAR_NAMES[i]
+    tl = BUTTON_COORDINATES[i]
+    
+    center_x = tl[0] + BUTTON_SIZE[0] / 2
+    center_y = tl[1] + BUTTON_SIZE[1] / 2
+
+    char_button = Button(screen, change_to_main_menu, char_button_asset, (center_x, center_y), 10)
+    char_button.change_dimensions(BUTTON_SIZE)
+    CHARACTER_MENU.add_button(char_button)
+    
+    name_center_x = center_x
+    name_center_y = tl[1] - 15
+    name_text = MenuText(name, (name_center_x, name_center_y), 10, screen, SUBTITLE_FONT, BLACK)
+    CHARACTER_MENU.interactive_elements.append(name_text)
+
 #endregion
 
 #region TUTORIAL GAME
@@ -1334,6 +1446,7 @@ GAME.add_players([PLAYER1, PLAYER2], [HITBOX_PLAYER1, HITBOX_PLAYER2])
 #region FRAMELOOP
 
 change_to_main_menu()
+print(pygame.font.get_fonts())
 
 while True:
     for event in pygame.event.get():
@@ -1360,7 +1473,7 @@ while True:
         current_game.redraw_frame()
 
     for callback in callbacks:
-            callback.process()
+        callback.process()
 
     SCREENSWIPE.draw()
     COUNTDOWN.draw()
