@@ -15,6 +15,10 @@ pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
+current_game = None
+current_menu = None
+callbacks = []
+
 #endregion
 
 # SPRITES AND ANIMATION
@@ -181,6 +185,9 @@ class Player(pygame.sprite.Sprite):
             self.sprite_handler.add_anim(sprite.name, spritesheet.load_image_strip((0, 0, 64, 64), sprite.length))
 
     def update(self):
+        global current_game
+        if (not current_game): return
+
         self.healthbar.update(f"{self.health}", self.health) # update healthbar
 
         keystate = pygame.key.get_pressed()
@@ -301,14 +308,14 @@ class Player(pygame.sprite.Sprite):
     def punch_attack(self):
         # freeze for 1/2 second
         self.punched = True
-        Callback(self.unpunch, PUNCHING.length * ANIMATION_LATENCY + 5, self.game_ref)
+        Callback(self.unpunch, PUNCHING.length * ANIMATION_LATENCY + 5)
 
         # do punch attack
         attack = PunchAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref)
         self.game_ref.attacks.append(attack)
 
-        repeat = Repeat(attack.follow_player, 1, self.game_ref)
-        Callback(repeat.kill, PUNCHING.length * ANIMATION_LATENCY, self.game_ref)
+        repeat = Repeat(attack.follow_player, 1)
+        Callback(repeat.kill, PUNCHING.length * ANIMATION_LATENCY)
 
         self.do_animation_and_reset("PUNCHING")
 
@@ -318,13 +325,13 @@ class Player(pygame.sprite.Sprite):
     def kick_attack(self):
         # freeze for 1/2 second
         self.kicked = True
-        Callback(self.unkick, KICKING.length * ANIMATION_LATENCY + 5, self.game_ref)
+        Callback(self.unkick, KICKING.length * ANIMATION_LATENCY + 5)
 
         attack = KickAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref)
         self.game_ref.attacks.append(attack)
 
-        repeat = Repeat(attack.follow_player, 1, self.game_ref)
-        Callback(repeat.kill, KICKING.length * ANIMATION_LATENCY, self.game_ref)
+        repeat = Repeat(attack.follow_player, 1)
+        Callback(repeat.kill, KICKING.length * ANIMATION_LATENCY)
 
         self.do_animation_and_reset("KICKING")
 
@@ -332,7 +339,7 @@ class Player(pygame.sprite.Sprite):
         self.current_animation = anim
         if (not self.sprite_handler.anims.get(self.current_animation)): return # we have not defined this animation
         self.sprite_handler.update_sprite(self.current_animation)
-        Callback(self.go_idle, len(self.sprite_handler.anims[self.current_animation]) * ANIMATION_LATENCY, self.game_ref)
+        Callback(self.go_idle, len(self.sprite_handler.anims[self.current_animation]) * ANIMATION_LATENCY)
 
     def jump(self):
         if not self.is_jumping:
@@ -355,7 +362,7 @@ class Player(pygame.sprite.Sprite):
             
         if is_on_platform and not self.ignoring_platforms:
             self.ignoring_platforms = True
-            Callback(self.unignore_platforms, 5, self.game_ref)
+            Callback(self.unignore_platforms, 5)
             
             self.is_jumping = True
             self.vertical_velocity = GRAVITY * 2
@@ -369,7 +376,7 @@ class Player(pygame.sprite.Sprite):
         self.is_ducking = True
         self.speed *= 0.5
         self.rect.y += PUNCH_ATTACK_HEIGHT * 1.5
-        Callback(self.unduck, 120, self.game_ref)
+        Callback(self.unduck, 120)
 
     def unduck(self):
         self.rect.y -= PUNCH_ATTACK_HEIGHT * 1.5
@@ -383,7 +390,7 @@ class Player(pygame.sprite.Sprite):
 
         # freeze for stun period
         self.frozen = True
-        Callback(self.unfreeze, stun_time, self.game_ref)
+        Callback(self.unfreeze, stun_time)
 
         self.do_animation_and_reset("FLINCHING")
 
@@ -415,7 +422,7 @@ class PunchAttack(pygame.sprite.Sprite):
         else:
             self.rect.center = (self.player_ref.rect.x - PUNCH_ATTACK_OFFSET_X, self.player_ref.rect.y - PLAYER_SPRITE_HEIGHT + PUNCH_ATTACK_OFFSET_Y)
         
-        Callback(self.delete, 30, self.game_ref) # delete attack in 1/2 second
+        Callback(self.delete, 30) # delete attack in 1/2 second
     
     def update(self):
         if (self.rect.colliderect(self.opponent_hitbox_ref.rect) and (self.flag)):
@@ -457,7 +464,7 @@ class KickAttack(pygame.sprite.Sprite):
         else:
             self.rect.center = (self.player_ref.rect.x - KICK_ATTACK_OFFSET_X, self.player_ref.rect.y - PLAYER_SPRITE_HEIGHT + KICK_ATTACK_OFFSET_Y)
         
-        Callback(self.delete, 30, self.game_ref) # delete attack in 1/2 second
+        Callback(self.delete, 30) # delete attack in 1/2 second
     
     def update(self):
         if (self.rect.colliderect(self.opponent_hitbox_ref.rect) and (self.flag)):
@@ -480,11 +487,11 @@ class KickAttack(pygame.sprite.Sprite):
 #region CALLBACKS
 
 class Callback():
-    def __init__(self, function, time_in_frames, game):
+    def __init__(self, function, time_in_frames):
         self.function = function
         self.time_in_frames = time_in_frames
-        self.game_ref = game
-        self.game_ref.callbacks.append(self)
+        global callbacks
+        callbacks.append(self)
     
     def process(self):
         self.time_in_frames -= 1
@@ -492,15 +499,16 @@ class Callback():
 
     def invoke(self):
         self.function()
-        self.game_ref.callbacks.remove(self)
+        global callbacks
+        callbacks.remove(self)
 
 class Repeat():
-    def __init__(self, function, timedelay, game):
+    def __init__(self, function, timedelay):
         self.function = function
         self.timedelay = timedelay
         self.timeref = timedelay
-        self.game_ref = game
-        self.game_ref.callbacks.append(self)
+        global callbacks
+        callbacks.append(self)
     
     def process(self):
         self.timedelay -= 1
@@ -511,7 +519,8 @@ class Repeat():
         self.timedelay = self.timeref
 
     def kill(self):
-        self.game_ref.callbacks.remove(self)
+        global callbacks
+        callbacks.remove(self)
 
 class Timer():
     def __init__(self, callback_fun, time_in_seconds, game):
@@ -524,8 +533,8 @@ class Timer():
         self.time_in_seconds -= 1
 
     def start_ticking(self):
-        Callback(self.end_action, FPS * self.time_in_seconds, GAME)
-        self.repeat = Repeat(self.tick, FPS, GAME)
+        Callback(self.end_action, FPS * self.time_in_seconds)
+        self.repeat = Repeat(self.tick, FPS)
 
     def end_action(self):
         self.callback() # perform action
@@ -551,7 +560,7 @@ class Toast(pygame.sprite.Sprite):
         self.game_ref = game
         self.on_kill_callback = on_kill_callback
 
-        Callback(self.kill, display_time, self.game_ref)
+        Callback(self.kill, display_time)
 
     def draw(self):
         self.surface_ref.blit(self.image, self.rect)
@@ -561,6 +570,39 @@ class Toast(pygame.sprite.Sprite):
     def kill(self):
         if (self.on_kill_callback): self.on_kill_callback()
         super().kill()
+
+class Button(pygame.sprite.Sprite):
+    def __init__(self, surface, on_click, static_sprite, offset, z_layer):
+        super().__init__()
+        self.image = pygame.image.load(static_sprite.spritesheet).convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.center = offset
+        self.surface_ref = surface
+        self.on_click = on_click
+        self.z = z_layer
+
+        self.is_active = True
+
+    def update(self):
+        self.surface_ref.blit(self.image, self.rect)
+
+    def handle_click(self, event):
+        if (not self.is_active): return
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.on_click()
+
+class Menu(object):
+    def __init__(self):
+        self.interactive_elements = []
+
+    def add_button(self, button):
+        self.interactive_elements.append(button)
+    
+    def redraw_frame(self):
+        for obj in sorted(self.interactive_elements, key=(lambda x: x.z), reverse=False):
+            obj.update()
 
 #endregion
 
@@ -653,7 +695,7 @@ class SpriteHandler(object):
         if (not self.change_anim(anim)): return # if animation does not exist do nothing
         if (self.repeat): self.repeat.kill()
         self.increment_sprite()
-        self.repeat = Repeat(self.increment_sprite, ANIMATION_LATENCY, self.game_ref)
+        self.repeat = Repeat(self.increment_sprite, ANIMATION_LATENCY)
     
     def increment_sprite(self):
         new_frame = pygame.transform.scale(self.get_next_frame(), (PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT))
@@ -725,6 +767,43 @@ class SpritedGameObject(pygame.sprite.Sprite):
         self.game_ref.static_game_objects.remove_internal(self)
         self.kill()
 
+class SpritedMenuObject(pygame.sprite.Sprite):
+    def __init__(self, static_sprite, location, surface, z_layer, type, menu):
+        super().__init__()
+        self.sprite = static_sprite
+        self.z = z_layer
+        self.type = type
+
+        try:
+            self.image = pygame.image.load(self.sprite.spritesheet).convert_alpha()
+        except:
+            print(f"Could not locate sprite resource: {self.sprite.spritesheet}")
+            raise SystemExit
+
+        self.rect = self.image.get_rect()
+        self.surface_ref = surface
+        self.rect.center = location
+        self.menu_ref = menu
+
+        self.attach_to_menu()
+    
+    def update(self):
+        self.surface_ref.blit(self.image, self.rect) # draw to screen
+
+    def attach_to_menu(self):
+        if (not self.menu_ref): return # if undefined game do nothing
+        self.menu_ref.interactive_elements.append(self)
+
+    def scale(self, multiplier):
+        self.image = pygame.transform.scale(self.image, (self.image.get_width() * multiplier, self.image.get_height() * multiplier))
+
+    def change_dimensions(self, new_dimensions):
+        self.image = pygame.transform.scale(self.image, new_dimensions)
+
+    def delete(self):
+        self.menu_ref.interactive_elements.remove(self)
+        self.kill()
+
 # GAME
 
 class Map(object):
@@ -741,7 +820,6 @@ class Game(object):
         self.attacks = []
         self.interactable_game_objects = pygame.sprite.Group()
         self.static_game_objects = pygame.sprite.Group()
-        self.callbacks = []
         self.map_ref = None
         self.tutorial = tutorial
         self.active_toast = None
@@ -764,14 +842,11 @@ class Game(object):
             igo.game_ref = self
             igo.attach_to_game()
             
-
         for sgo in map.static_game_objects:
             sgo.game_ref = self
             sgo.attach_to_game()
         
     def redraw_frame(self):
-        for callback in self.callbacks:
-            callback.process()
 
         foreground = []
         background = []
@@ -843,7 +918,56 @@ class Tutorial(object):
             self.is_toast_active = True
             self.game_ref.active_toast = Toast(self.surface_ref, toast_text, 120, self.game_ref, self.toast_finished)
 
-GAME = Game(False)
+SWIPE_SPEED = 120
+
+class Screenswipe(pygame.sprite.Sprite):
+    def __init__(self, static_sprite, surface):
+        super().__init__()
+        self.image = pygame.image.load(static_sprite.spritesheet).convert_alpha()
+        self.image = pygame.transform.scale(self.image, (SCREEN_WIDTH * 2, SCREEN_HEIGHT))
+        self.rect = self.image.get_rect()
+        self.rect.center = (SCREEN_WIDTH / 2 + 1600, SCREEN_HEIGHT / 2)
+        self.repeat = None
+        self.surface_ref = surface
+
+    def update(self):
+        self.rect.move_ip(-SWIPE_SPEED, 0)
+
+    def draw(self):
+        self.surface_ref.blit(self.image, self.rect)
+
+    def do_effect(self):
+        global current_game
+        Callback(self.reset, 120)
+        self.repeat = Repeat(self.update, 1)
+
+    def reset(self):
+        self.repeat.kill()
+        self.repeat = None
+        self.rect.center = (SCREEN_WIDTH / 2 + 1600, SCREEN_HEIGHT / 2)
+
+SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
+
+#region MAIN MENU
+MAIN_MENU = Menu()
+
+MAIN_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAIN_MENU)
+MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+def load_tutorial():
+    SCREENSWIPE.do_effect()
+    Callback(change_game_to_tutorial, 15)
+
+def change_game_to_tutorial():
+    global current_menu 
+    current_menu = None
+    global current_game 
+    current_game = TUTORIAL_GAME
+
+MAIN_MENU_BUTTON1 = Button(screen, load_tutorial, StaticSprite("MAIN_MENU_BUTTON1", "assets/test_button.png"), (SCREEN_WIDTH / 2, 300), 10)
+
+MAIN_MENU.add_button(MAIN_MENU_BUTTON1)
+#endregion
 
 #region TUTORIAL GAME
 TUTORIAL_GAME = Game(True)
@@ -925,7 +1049,7 @@ GAME.add_players([PLAYER1, PLAYER2], [HITBOX_PLAYER1, HITBOX_PLAYER2])
 
 #region FRAMELOOP
 
-current_game = None
+current_menu = MAIN_MENU
 
 while True:
     for event in pygame.event.get():
@@ -933,15 +1057,27 @@ while True:
             pygame.quit()
             exit()
 
+        if (current_menu):
+            for element in current_menu.interactive_elements:
+                if isinstance(element, Button):
+                    element.handle_click(event)
+
     # game code
     screen.fill(WHITE)
 
     # debug
-    current_game = TUTORIAL_GAME
+    # current_game = TUTORIAL_GAME
     #
 
-    if (current_game):
+    if (current_menu):
+        current_menu.redraw_frame()
+    elif (current_game):
         current_game.redraw_frame()
+
+    for callback in callbacks:
+            callback.process()
+
+    SCREENSWIPE.draw()
 
     pygame.display.update()
     clock.tick(FPS)
