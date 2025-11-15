@@ -18,6 +18,8 @@ clock = pygame.time.Clock()
 current_game = None
 current_menu = None
 callbacks = []
+bgm_loaded = False
+current_bgm = None
 
 #endregion
 
@@ -1080,8 +1082,91 @@ class Countdown(pygame.sprite.Sprite):
 SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
 COUNTDOWN = Countdown(screen)
 
-SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
-COUNTDOWN = Countdown(screen)
+class SoundFile(object):
+    def __init__(self, name, path):
+        self.name = name
+        self.path = path
+
+class BackgroundMusic(object):
+    def __init__(self, music_file):
+        global bgm_loaded
+        self.music_file = music_file
+        self.running = False
+        try:
+            if (bgm_loaded): 
+                print("Audio already loaded.")
+                return
+            pygame.mixer.music.load(music_file.path)
+            bgm_loaded = True
+        except:
+            print(f"Could not locate audio resource: {music_file.path}")
+
+    def load_and_play(self):
+        if (self.running): return
+        try:
+            pygame.mixer.music.load(self.music_file.path)
+            bgm_loaded = True
+        except:
+            print(f"Could not locate audio resource: {self.music_file.path}")
+        self.play()
+
+    def play(self):
+        pygame.mixer.music.play(-1) # play infinitely
+        self.running = True
+    
+    def pause(self):
+        if (self.running): pygame.mixer.music.pause()
+        self.running = False
+
+    def unpause(self):
+        if (not self.running): pygame.mixer.music.unpause()
+        self.running = True
+
+    def stop(self):
+        if (self.running): pygame.mixer.music.stop()
+        self.running = False
+
+    def kill(self):
+        pygame.mixer.music.unload()
+        global bgm_loaded
+        bgm_loaded = False
+
+class SoundEffect(object):
+    def __init__(self, sound_file):
+        self.sound = None
+        try:
+            self.sound = pygame.mixer.Sound(sound_file.path)
+        except:
+            print(f"Could not locate audio resource: {sound_file.path}")
+
+    def play(self):
+        if (self.sound): self.sound.play()
+    
+    def set_volume(self, vol):
+        if (self.sound):
+            self.sound.set_volume = vol
+
+    def stop(self):
+        if (self.sound): self.sound.stop()
+
+    def kill(self):
+        if (self.sound): self.sound.stop()
+        self.sound = None
+
+#region GLOBAL FUNCTIONS
+
+def change_bgm(new_bgm):
+    global current_bgm
+    if (current_bgm): current_bgm.kill()
+    current_bgm = new_bgm
+    current_bgm.load_and_play()
+
+def change_to_main_menu():
+    global current_menu 
+    current_menu = MAIN_MENU
+    global current_game 
+    current_game = None
+    change_bgm(MAIN_MENU_AUDIO)
 
 def load_tutorial():
     SCREENSWIPE.do_effect()
@@ -1092,6 +1177,7 @@ def change_game_to_tutorial():
     current_menu = None
     global current_game 
     current_game = TUTORIAL_GAME
+    change_bgm(TUTORIAL_AUDIO)
 
 def load_mvb():
     SCREENSWIPE.do_effect()
@@ -1116,8 +1202,13 @@ def change_game_to_mvb():
     for player in current_game.players:
         player.period_freeze(240)
 
+    change_bgm(MVB_GAME_AUDIO)
+
+#endregion
+
 #region MAIN MENU
 MAIN_MENU = Menu()
+MAIN_MENU_AUDIO = BackgroundMusic(SoundFile("MAIN_MENU_BGM", "audio/main_menu_loop.ogg"))
 
 MAIN_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAIN_MENU)
 MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -1136,6 +1227,7 @@ MAIN_MENU.add_button(MAIN_MENU_CHARACTER_BUTTON)
 #region TUTORIAL GAME
 TUTORIAL_GAME = Game(True)
 TUTORIAL = Tutorial(screen, TUTORIAL_GAME)
+TUTORIAL_AUDIO = BackgroundMusic(SoundFile("TUTORIAL_BGM", "audio/tutorial_loop.ogg"))
 
 MVB_SPAWN_POSITION = PLAYER1_SPAWN_POSITION
 
@@ -1177,6 +1269,7 @@ TUTORIAL_GAME.load_map(TUTORIAL_MAP)
 
 #region MVB_GAME
 MVB_GAME = Game(False)
+MVB_GAME_AUDIO = BackgroundMusic(SoundFile("MVB_MAP_BGM", "audio/mvb_map_loop.mp3"))
 
 MVB_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 MVB_P2_SPAWN_POSITION = MVB_DUMMY1_SPAWN_POSITION
@@ -1240,11 +1333,12 @@ GAME.add_players([PLAYER1, PLAYER2], [HITBOX_PLAYER1, HITBOX_PLAYER2])
 
 #region FRAMELOOP
 
-current_menu = MAIN_MENU
+change_to_main_menu()
 
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            if (current_bgm): current_bgm.kill()
             pygame.quit()
             exit()
 
