@@ -388,7 +388,7 @@ class Player(pygame.sprite.Sprite):
         self.health -= amount
         print(f"player damaged {amount} hp and now has {self.health} hp left")
 
-        HitNotif(amount, self.opponent_ref, self.surface_ref)
+        HitNotif(amount, self, self.surface_ref)
 
         # freeze for stun period
         self.frozen = True
@@ -983,7 +983,101 @@ class Screenswipe(pygame.sprite.Sprite):
         self.repeat = None
         self.rect.center = (SCREEN_WIDTH / 2 + 1600, SCREEN_HEIGHT / 2)
 
+COUNTDOWN_MAX_SPEED = 60
+COUNTDOWN_START_X = SCREEN_WIDTH + 100
+COUNTDOWN_CENTER_Y = SCREEN_HEIGHT / 2
+COUNTDOWN_DECEL_FRAMES = 20
+COUNTDOWN_PAUSE_FRAMES = 20
+COUNTDOWN_ACCELERATION_FRAMES = 20
+
+TRANSLUCENT_OVERLAY = "assets/overlay.png"
+COUNTDOWN_IMAGES = ["assets/three.png", "assets/two.png", "assets/one.png"]
+
+class Countdown(pygame.sprite.Sprite):
+    def __init__(self, surface):
+        super().__init__()
+        self.current_count = 0
+        self.image2 = pygame.image.load(TRANSLUCENT_OVERLAY).convert_alpha()
+        self.image2 = pygame.transform.scale(self.image2, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.image = pygame.image.load(COUNTDOWN_IMAGES[self.current_count]).convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect2 = self.image2.get_rect()
+        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTER_Y)
+        self.rect2.center = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        self.repeat = None
+        self.surface_ref = surface
+        
+        self.state = "IDLE"
+        self.frame_count = 0
+        self.current_speed = 0
+
+        self.overlay_active = False
+
+    def update(self):
+        if self.state == "DECELERATE":
+            progress = self.frame_count / COUNTDOWN_DECEL_FRAMES
+            self.current_speed = COUNTDOWN_MAX_SPEED * (1 - progress)
+
+            self.rect.move_ip(-self.current_speed, 0)
+            self.frame_count += 1
+
+            if self.frame_count >= COUNTDOWN_DECEL_FRAMES:
+                self.state = "PAUSE"
+                self.frame_count = 0
+
+        elif self.state == "ACCELERATE":
+            progress = self.frame_count / COUNTDOWN_ACCELERATION_FRAMES
+            self.current_speed = COUNTDOWN_MAX_SPEED * progress # inversely proportional
+
+            self.rect.move_ip(-self.current_speed, 0)
+            self.frame_count += 1
+
+            if self.frame_count >= COUNTDOWN_ACCELERATION_FRAMES:
+                self.state = "IDLE"
+                self.frame_count = 0
+
+        elif self.state == "IDLE":
+            pass
+
+    def draw(self):
+        if (self.overlay_active): self.surface_ref.blit(self.image2, self.rect2)
+        self.surface_ref.blit(self.image, self.rect)
+
+    def do_countdown(self):
+        self.do_effect()
+        Callback(self.do_effect, 61)
+        Callback(self.do_effect, 122)
+
+    def start_accelerate(self):
+        self.state = "ACCELERATE"
+        self.frame_count = 0
+
+    def do_effect(self):
+        if self.current_count < len(COUNTDOWN_IMAGES):
+            self.image = pygame.image.load(COUNTDOWN_IMAGES[self.current_count]).convert_alpha()
+        
+        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTER_Y)
+        self.frame_count = 0
+        self.state = "DECELERATE"
+        
+        if (self.repeat): self.repeat.kill()
+        self.repeat = Repeat(self.update, 1)
+
+        Callback(self.start_accelerate, COUNTDOWN_DECEL_FRAMES + COUNTDOWN_PAUSE_FRAMES)
+        Callback(self.reset, 60) 
+
+    def reset(self):
+        if (self.repeat): self.repeat.kill()
+        self.repeat = None
+        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTER_Y)
+        self.state = "IDLE"
+        self.current_count += 1
+
 SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
+COUNTDOWN = Countdown(screen)
+
+SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
+COUNTDOWN = Countdown(screen)
 
 #region MAIN MENU
 MAIN_MENU = Menu()
@@ -1001,9 +1095,29 @@ def change_game_to_tutorial():
     global current_game 
     current_game = TUTORIAL_GAME
 
+def load_mvb():
+    SCREENSWIPE.do_effect()
+    Callback(change_game_to_mvb, 15)
+    Callback(countdown_sequence, 60)
+    Callback(disable_countdown_overlay, 243)
+
+def countdown_sequence():
+    COUNTDOWN.current_count = 0
+    COUNTDOWN.do_countdown()
+
+def disable_countdown_overlay():
+    COUNTDOWN.overlay_active = False
+
+def change_game_to_mvb():
+    global current_menu 
+    current_menu = None
+    global current_game 
+    current_game = MVB_GAME
+    COUNTDOWN.overlay_active = True
+
 MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH / 2, 225), 10)
 MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_tutorial, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
-MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_tutorial, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
+MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_mvb, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
 MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_tutorial, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH / 2, 450), 10)
 
 MAIN_MENU.add_button(MAIN_MENU_TUTORIAL_BUTTON)
@@ -1021,7 +1135,7 @@ MVB_SPAWN_POSITION = PLAYER1_SPAWN_POSITION
 TUTORIAL_PLAYER = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, MVB_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, TUTORIAL_GAME, PLAYER_HEALTH, True, TUTORIAL)
 HITBOX_TUTORIAL_PLAYER = Hitbox(screen, TUTORIAL_PLAYER)
 
-MVB_DUMMY1_SPAWN_POSITION = (2.5 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 3, 100)
+MVB_DUMMY1_SPAWN_POSITION = (2 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 3, 100)
 TUTORIAL_DUMMY1 = Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, MVB_DUMMY1_SPAWN_POSITION, RIGHT, (0, 0), DUMMY_CHARACTER, TUTORIAL_GAME, 2147483647, False, None)
 HITBOX_TUTORIAL_DUMMY1 = Hitbox(screen, TUTORIAL_DUMMY1)
 
@@ -1052,6 +1166,31 @@ TUTORIAL_MAP = Map("TUTORIAL_MAP", TUTORIAL_IGO, TUTORIAL_SGO, TUTORIAL_GROUND_Y
 TUTORIAL_GAME.add_players([TUTORIAL_PLAYER, TUTORIAL_DUMMY1], [HITBOX_TUTORIAL_PLAYER, HITBOX_TUTORIAL_DUMMY1])
 TUTORIAL_GAME.load_map(TUTORIAL_MAP)
 
+#endregion
+
+#region MVB_GAME
+MVB_GAME = Game(False)
+
+MVB_P1_SPAWN_POSITION = MVB_SPAWN_POSITION
+MVB_P2_SPAWN_POSITION = MVB_DUMMY1_SPAWN_POSITION
+
+MVB_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, MVB_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
+HITBOX_MVB_PLAYER1 = Hitbox(screen, MVB_PLAYER1)
+
+MVB_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, MVB_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
+HITBOX_MVB_PLAYER2 = Hitbox(screen, MVB_PLAYER2)
+
+MVB_PLAYER1.attach_opponent(MVB_PLAYER2, HITBOX_MVB_PLAYER2)
+MVB_PLAYER2.attach_opponent(MVB_PLAYER1, HITBOX_MVB_PLAYER1)
+
+MVB_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9, TUTORIAL_PLATFORM_STAIRS10]
+MVB_SGO = [TUTORIAL_BACKGROUND]
+MVB_GROUND_Y = 494
+ground_y = MVB_GROUND_Y
+MVB_MAP = Map("MVB_MAP", MVB_IGO, MVB_SGO, MVB_GROUND_Y)
+
+MVB_GAME.add_players([MVB_PLAYER1, MVB_PLAYER2], [HITBOX_MVB_PLAYER1, HITBOX_MVB_PLAYER2])
+MVB_GAME.load_map(MVB_MAP)
 #endregion
 
 #region TEST_GAME
@@ -1123,6 +1262,7 @@ while True:
             callback.process()
 
     SCREENSWIPE.draw()
+    COUNTDOWN.draw()
 
     pygame.display.update()
     clock.tick(FPS)
