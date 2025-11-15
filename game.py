@@ -9,7 +9,7 @@ from sys import exit
 SCREEN_WIDTH = 1024
 SCREEN_HEIGHT = 576
 FPS = 60 # game fps
-DISPLAY_HITBOXES = True
+DISPLAY_HITBOXES = False
 
 pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -51,7 +51,11 @@ KICKING = AnimatedSprite("KICKING", "assets/spritesheet_kick.png", 4)
 JUMPING = AnimatedSprite("JUMPING", "assets/spritesheet_jump.png", 1)
 FLINCHING = AnimatedSprite("FLINCHING", "assets/spritesheet_flinch.png", 3)
 
+DUMMY_IDLE = AnimatedSprite("IDLE", "assets/dummy_draft.png", 1)
+DUMMY_FLINCHING = AnimatedSprite("FLINCHING", "assets/dummy_draft.png", 1)
+
 DEFAULT_CHARACTER = [IDLE, PUNCHING, KICKING, JUMPING, FLINCHING]
+DUMMY_CHARACTER = [DUMMY_IDLE, DUMMY_FLINCHING]
 
 # FONT AND TEXT
 
@@ -94,6 +98,8 @@ PLAYER2_KEYDUCK = pygame.K_DOWN
 PLAYER2_KEYPUNCH = pygame.K_PERIOD
 PLAYER2_KEYKICK = pygame.K_SLASH
 
+NO_KEY = pygame.K_UNKNOWN
+
 class Hitbox(object):
     def __init__(self, surface, player):
         self.player_ref = player
@@ -114,7 +120,7 @@ class Hitbox(object):
         self.surface_ref.blit(self.image, self.rect) # draw to screen
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, surface, key_left, key_right, key_jump, key_duck, key_punch, key_kick, spawn_position, direction, healthbar_offset, sprites, game):
+    def __init__(self, surface, key_left, key_right, key_jump, key_duck, key_punch, key_kick, spawn_position, direction, healthbar_offset, sprites, game, health, display_healthbar, tutorial):
         super().__init__()
         
         # other attributes
@@ -122,10 +128,12 @@ class Player(pygame.sprite.Sprite):
         self.opponent_ref = None
         self.opponent_hitbox_ref = None
         self.game_ref = game
+        self.tutorial_ref = tutorial
 
         # gameplay
         self.frozen = False
-        self.health = PLAYER_HEALTH
+        self.health = health
+        self.display_healthbar = display_healthbar
         self.direction_facing = direction
         self.is_jumping = False
         self.is_ducking = False
@@ -155,6 +163,7 @@ class Player(pygame.sprite.Sprite):
 
         self.go_idle()
 
+        if (not self.display_healthbar): healthbar_offset = (-100, -100)
         self.healthbar = HealthBar(self.health, self.surface_ref, healthbar_offset)
 
         self.ignoring_platforms = False
@@ -219,25 +228,40 @@ class Player(pygame.sprite.Sprite):
                 self.image = pygame.transform.flip(self.image, 1, 0)
                 self.rect.move_ip(-X_OFFSET, 0)
             self.rect.move_ip(-self.get_move_left(), 0)
+            if (self.tutorial_ref): 
+                self.tutorial_ref.do_tutorial()
+                self.tutorial_ref.has_moved = True
         if keystate[self.key_right]:
             if (self.direction_facing == LEFT):
                 # we have switched directions
                 self.image = pygame.transform.flip(self.image, 1, 0)
                 self.rect.move_ip(X_OFFSET, 0)
             self.rect.move_ip(self.get_move_right(), 0)
+            if (self.tutorial_ref): 
+                self.tutorial_ref.do_tutorial()
+                self.tutorial_ref.has_moved = True
 
         # can only duck or jump if on ground
         # fall through platform if both pressed at same time
         if keystate[self.key_jump] and (not self.is_ducking) and (not self.is_jumping):
             self.jump()
+            if (self.tutorial_ref): 
+                self.tutorial_ref.do_tutorial()
+                self.tutorial_ref.has_jumped = True
         elif keystate[self.key_duck] and (not self.is_ducking) and (not self.is_jumping):
             self.fall_through()
 
         # attacks
         if keystate[self.key_punch] and (not self.is_ducking) and (not self.punched) and (not self.kicked):
             self.punch_attack()
+            if (self.tutorial_ref): 
+                self.tutorial_ref.do_tutorial()
+                self.tutorial_ref.has_punched = True
         if keystate[self.key_kick] and (not self.is_ducking) and (not self.kicked) and (not self.punched):
             self.kick_attack()
+            if (self.tutorial_ref): 
+                self.tutorial_ref.do_tutorial()
+                self.tutorial_ref.has_kicked = True
 
     def check_grounded(self):
         if (self.rect.y >= (ground_y - PLAYER_HITBOX_HEIGHT)): # if standind on the main ground 
@@ -319,12 +343,6 @@ class Player(pygame.sprite.Sprite):
             if (not self.sprite_handler.anims.get(self.current_animation)): return
             self.sprite_handler.update_sprite(self.current_animation)
 
-    def duck(self):
-        self.is_ducking = True
-        self.speed *= 0.5
-        self.rect.y += PUNCH_ATTACK_HEIGHT * 1.5
-        Callback(self.unduck, 120, self.game_ref)
-
     def fall_through(self):
         is_on_platform = False
         if (self.rect.y < (ground_y - PLAYER_HITBOX_HEIGHT)): 
@@ -346,10 +364,18 @@ class Player(pygame.sprite.Sprite):
             if (self.sprite_handler.anims.get(self.current_animation)): 
                 self.sprite_handler.update_sprite(self.current_animation)
 
+    ## FINISH DUCK AND UNUCK
+    def duck(self):
+        self.is_ducking = True
+        self.speed *= 0.5
+        self.rect.y += PUNCH_ATTACK_HEIGHT * 1.5
+        Callback(self.unduck, 120, self.game_ref)
+
     def unduck(self):
         self.rect.y -= PUNCH_ATTACK_HEIGHT * 1.5
         self.speed /= 0.5
         self.is_ducking = False
+    ##
 
     def damage(self, amount, stun_time):
         self.health -= amount
@@ -508,6 +534,33 @@ class Timer():
 
     def get_time(self):
         return self.time_in_seconds
+
+TOAST_WIDTH = SCREEN_WIDTH / 2
+TOAST_HEIGHT = 32 
+
+class Toast(pygame.sprite.Sprite):
+    def __init__(self, surface, text, display_time, game, on_kill_callback):
+        super().__init__()
+        self.image = pygame.Surface((TOAST_WIDTH, TOAST_HEIGHT))
+        self.image.fill(GRAY)
+        self.rect = self.image.get_rect()
+        self.rect.center = (SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30)
+        self.text = text
+        self.surface_ref = surface
+        self.display_time = display_time
+        self.game_ref = game
+        self.on_kill_callback = on_kill_callback
+
+        Callback(self.kill, display_time, self.game_ref)
+
+    def draw(self):
+        self.surface_ref.blit(self.image, self.rect)
+        text = font.render(self.text, True, WHITE)
+        self.surface_ref.blit(text, (SCREEN_WIDTH / 2 - 250, SCREEN_HEIGHT - 40))
+
+    def kill(self):
+        if (self.on_kill_callback): self.on_kill_callback()
+        super().kill()
 
 #endregion
 
@@ -683,13 +736,15 @@ class Map(object):
         self.ground_y = ground_y
 
 class Game(object):
-    def __init__(self):
+    def __init__(self, tutorial):
         # FRAME UPDATE REFERENCES
         self.attacks = []
         self.interactable_game_objects = pygame.sprite.Group()
         self.static_game_objects = pygame.sprite.Group()
         self.callbacks = []
         self.map_ref = None
+        self.tutorial = tutorial
+        self.active_toast = None
 
         # PLAYERS
         self.players = []
@@ -749,21 +804,61 @@ class Game(object):
         for obj in sorted(foreground, key=(lambda x: x.z), reverse=False):
             obj.update()
 
-#region DEFINE GAME
+        if (self.tutorial): TUTORIAL.do_tutorial()
 
-# DEFINE GAME
+        if self.active_toast:
+            self.active_toast.draw()
 
-GAME = Game()
-TUTORIAL_GAME = Game()
+class Tutorial(object):
+    def __init__(self, surface, game):
+        self.has_moved = False
+        self.has_jumped = False
+        self.has_punched = False
+        self.has_kicked = False
+        self.has_dodged = False
 
-# DEFINE GAME OBJECTS AND PLAYERS
+        self.surface_ref = surface
+        self.game_ref = game
+        self.is_toast_active = False
 
-## PLAYERS
+    def toast_finished(self):
+        self.is_toast_active = False
+
+    def do_tutorial(self):
+        if (self.is_toast_active): return
+
+        toast_text = None
+        if (not self.has_moved):
+            toast_text = "Use the keys ASD to move around!"
+        elif (not self.has_jumped):
+            toast_text = "Use the keys W to jump!"
+        elif (not self.has_punched):
+            toast_text = "Use the J key to punch!"
+        elif (not self.has_kicked):
+            toast_text = "Use the K key to kick!"
+        elif (not self.has_dodged):
+            toast_text = "DODGE TUTORIAL"
+
+        if toast_text:
+            self.is_toast_active = True
+            self.game_ref.active_toast = Toast(self.surface_ref, toast_text, 120, self.game_ref, self.toast_finished)
+
+GAME = Game(False)
+
+#region TUTORIAL GAME
+TUTORIAL_GAME = Game(True)
+TUTORIAL = Tutorial(screen, TUTORIAL_GAME)
 
 MVB_SPAWN_POSITION = PLAYER1_SPAWN_POSITION
 
-TUTORIAL_PLAYER = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, TUTORIAL_GAME)
+TUTORIAL_PLAYER = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, MVB_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, TUTORIAL_GAME, PLAYER_HEALTH, True, TUTORIAL)
 HITBOX_TUTORIAL_PLAYER = Hitbox(screen, TUTORIAL_PLAYER)
+
+MVB_DUMMY1_SPAWN_POSITION = (2.5 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 3, 100)
+TUTORIAL_DUMMY1 = Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, MVB_DUMMY1_SPAWN_POSITION, RIGHT, (0, 0), DUMMY_CHARACTER, TUTORIAL_GAME, 2147483647, False, None)
+HITBOX_TUTORIAL_DUMMY1 = Hitbox(screen, TUTORIAL_DUMMY1)
+
+TUTORIAL_PLAYER.attach_opponent(TUTORIAL_DUMMY1, HITBOX_TUTORIAL_DUMMY1)
 
 TUTORIAL_BACKGROUND = SpritedGameObject(StaticSprite("TUTORIAL_BACKGROUND", "assets/mvb_draft_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
 TUTORIAL_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -779,18 +874,16 @@ TUTORIAL_PLATFORM_STAIRS7 = Platform((100, 16), (500, 420), screen)
 TUTORIAL_PLATFORM_STAIRS8 = Platform((100, 16), (550, 440), screen)
 TUTORIAL_PLATFORM_STAIRS9 = Platform((100, 16), (600, 460), screen)
 
-# plat = Platform((196 * 2, 16), (480, 300), screen)
-# plat_sprite = SpritedGameObject(StaticSprite("PLATFORM", "assets/platform.png"), (350, 300), screen, 10, FOREGROUND_OBJECT)
-
 TUTORIAL_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9]
 TUTORIAL_SGO = [TUTORIAL_BACKGROUND]
 TUTORIAL_GROUND_Y = 420
 ground_y = TUTORIAL_GROUND_Y
 TUTORIAL_MAP = Map("TUTORIAL_MAP", TUTORIAL_IGO, TUTORIAL_SGO, TUTORIAL_GROUND_Y)
 
-TUTORIAL_GAME.add_players([TUTORIAL_PLAYER], [HITBOX_TUTORIAL_PLAYER])
+TUTORIAL_GAME.add_players([TUTORIAL_PLAYER, TUTORIAL_DUMMY1], [HITBOX_TUTORIAL_PLAYER, HITBOX_TUTORIAL_DUMMY1])
 TUTORIAL_GAME.load_map(TUTORIAL_MAP)
 
+#endregion
 
 #region TEST_GAME
 
@@ -830,11 +923,9 @@ GAME.add_players([PLAYER1, PLAYER2], [HITBOX_PLAYER1, HITBOX_PLAYER2])
 
 #endregion
 
-#endregion
-
 #region FRAMELOOP
 
-current_game = TUTORIAL_GAME
+current_game = None
 
 while True:
     for event in pygame.event.get():
@@ -844,7 +935,13 @@ while True:
 
     # game code
     screen.fill(WHITE)
-    current_game.redraw_frame()
+
+    # debug
+    current_game = TUTORIAL_GAME
+    #
+
+    if (current_game):
+        current_game.redraw_frame()
 
     pygame.display.update()
     clock.tick(FPS)
