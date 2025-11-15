@@ -1079,12 +1079,6 @@ COUNTDOWN = Countdown(screen)
 SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
 COUNTDOWN = Countdown(screen)
 
-#region MAIN MENU
-MAIN_MENU = Menu()
-
-MAIN_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAIN_MENU)
-MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
-
 def load_tutorial():
     SCREENSWIPE.do_effect()
     Callback(change_game_to_tutorial, 15)
@@ -1114,6 +1108,12 @@ def change_game_to_mvb():
     global current_game 
     current_game = MVB_GAME
     COUNTDOWN.overlay_active = True
+
+#region MAIN MENU
+MAIN_MENU = Menu()
+
+MAIN_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAIN_MENU)
+MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH / 2, 225), 10)
 MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_tutorial, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
