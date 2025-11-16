@@ -24,7 +24,7 @@ callbacks = []
 bgm_loaded = False
 current_bgm = None
 hicontrast = False
-in_countdown = False
+in_cutscene = False
 ai_game = False
 
 PAUSE_MENU = None
@@ -1547,8 +1547,8 @@ class Countdown(pygame.sprite.Sprite):
 
     def do_countdown(self):
         self.vo = SoundEffect(COUNTDOWN_VO)
-        global in_countdown
-        in_countdown = True
+        global in_cutscene
+        in_cutscene = True
         self.vo.play()
         self.do_effect()
         Callback(self.do_effect, 61)
@@ -1556,8 +1556,8 @@ class Countdown(pygame.sprite.Sprite):
         Callback(self.disable_countdown, 200)
 
     def disable_countdown(self):
-        global in_countdown
-        in_countdown = False
+        global in_cutscene
+        in_cutscene = False
 
     def start_accelerate(self):
         self.state = "ACCELERATE"
@@ -1650,7 +1650,14 @@ class SwipeSprite(pygame.sprite.Sprite):
     def do_swipesprite_effect(self):
         self.overlay_active = True
         self.do_effect()
+        global in_cutscene
+        in_cutscene = True
         Callback(self.disable_overlay, 80)
+        Callback(self.swipesprite_end, 85)
+
+    def swipesprite_end():
+        global in_cutscene
+        in_cutscene = False
 
     def start_accelerate(self):
         self.state = "ACCELERATE"
@@ -2497,7 +2504,7 @@ while True:
                 if isinstance(element, Button):
                     element.handle_click(event)
 
-        if (event.type == pygame.KEYDOWN) and (event.key == pygame.K_ESCAPE) and (not in_countdown):
+        if (event.type == pygame.KEYDOWN) and (event.key == pygame.K_ESCAPE) and (not in_cutscene):
             if current_game and (current_menu is None):
                 pause_game()
             elif (current_menu is PAUSE_MENU):
