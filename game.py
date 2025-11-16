@@ -1511,6 +1511,7 @@ class BackgroundMusic(object):
 
     def kill(self):
         pygame.mixer.music.unload()
+        self.running = False
         global bgm_loaded
         bgm_loaded = False
 
@@ -1564,6 +1565,7 @@ for w in SETTINGS_WIDGETS: w.hide()
 
 def change_bgm(new_bgm):
     global current_bgm
+    if (current_bgm and current_bgm.running == False): current_bgm.unpause()
     if (current_bgm): current_bgm.kill()
     current_bgm = new_bgm
     current_bgm.load_and_play()
@@ -1573,7 +1575,8 @@ def change_to_main_menu():
     current_menu = MAIN_MENU
     global current_game 
     current_game = None
-    change_bgm(MAIN_MENU_AUDIO)
+    if (not current_bgm) or (current_bgm != MAIN_MENU_AUDIO):
+        change_bgm(MAIN_MENU_AUDIO)
 
     Repeat(random_move_mainclouds, 30)
     
@@ -1614,7 +1617,6 @@ def change_to_map_menu():
     current_menu = MAP_SELECT_MENU
     global current_game 
     current_game = None
-    # change_bgm(MAIN_MENU_AUDIO)
 
 def load_game_over_menu():
     SCREENSWIPE.do_effect()
@@ -2017,21 +2019,21 @@ TUTORIAL_BACKGROUND = SpritedGameObject(StaticSprite("TUTORIAL_BACKGROUND", "ass
 TUTORIAL_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 TUTORIAL_PLATFORM_UPSTAIRS = Platform((SCREEN_WIDTH, 16), (SCREEN_WIDTH / 2, 290), screen)
-TUTORIAL_PLATFORM_STAIRS1 = Platform((30, 16), (0, 345), screen)
-TUTORIAL_PLATFORM_STAIRS2 = Platform((30, 16), (25, 360), screen)
-TUTORIAL_PLATFORM_STAIRS3 = Platform((30, 16), (50, 375), screen)
-TUTORIAL_PLATFORM_STAIRS4 = Platform((30, 16), (75, 390), screen)
-TUTORIAL_PLATFORM_STAIRS5 = Platform((60, 16), (120, 405), screen)
-TUTORIAL_PLATFORM_STAIRS6 = Platform((30, 16), (155, 420), screen)
-TUTORIAL_PLATFORM_STAIRS7 = Platform((30, 16), (180, 435), screen)
-TUTORIAL_PLATFORM_STAIRS8 = Platform((30, 16), (205, 450), screen)
-TUTORIAL_PLATFORM_STAIRS9 = Platform((30, 16), (230, 465), screen)
-TUTORIAL_PLATFORM_STAIRS10 = Platform((60, 16), (275, 480), screen)
-TUTORIAL_PLATFORM_STAIRS11 = Platform((30, 16), (310, 495), screen)
-TUTORIAL_PLATFORM_STAIRS12 = Platform((30, 16), (335, 510), screen)
-TUTORIAL_PLATFORM_STAIRS13 = Platform((30, 16), (360, 525), screen)
-TUTORIAL_PLATFORM_STAIRS14 = Platform((30, 16), (385, 540), screen)
-TUTORIAL_PLATFORM_STAIRS15 = Platform((30, 16), (400, 555), screen)
+TUTORIAL_PLATFORM_STAIRS1 = Platform((30, 16), (-35, 345), screen)
+TUTORIAL_PLATFORM_STAIRS2 = Platform((30, 16), (-10, 360), screen)
+TUTORIAL_PLATFORM_STAIRS3 = Platform((30, 16), (15, 375), screen)
+TUTORIAL_PLATFORM_STAIRS4 = Platform((30, 16), (40, 390), screen)
+TUTORIAL_PLATFORM_STAIRS5 = Platform((60, 16), (85, 405), screen)
+TUTORIAL_PLATFORM_STAIRS6 = Platform((30, 16), (120, 420), screen)
+TUTORIAL_PLATFORM_STAIRS7 = Platform((30, 16), (145, 435), screen)
+TUTORIAL_PLATFORM_STAIRS8 = Platform((30, 16), (170, 450), screen)
+TUTORIAL_PLATFORM_STAIRS9 = Platform((30, 16), (195, 465), screen)
+TUTORIAL_PLATFORM_STAIRS10 = Platform((60, 16), (240, 480), screen)
+TUTORIAL_PLATFORM_STAIRS11 = Platform((30, 16), (275, 495), screen)
+TUTORIAL_PLATFORM_STAIRS12 = Platform((30, 16), (300, 510), screen)
+TUTORIAL_PLATFORM_STAIRS13 = Platform((30, 16), (325, 525), screen)
+TUTORIAL_PLATFORM_STAIRS14 = Platform((30, 16), (350, 540), screen)
+TUTORIAL_PLATFORM_STAIRS15 = Platform((30, 16), (365, 555), screen)
 
 TUTORIAL_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9, TUTORIAL_PLATFORM_STAIRS10, TUTORIAL_PLATFORM_STAIRS11, TUTORIAL_PLATFORM_STAIRS12, TUTORIAL_PLATFORM_STAIRS13, TUTORIAL_PLATFORM_STAIRS14, TUTORIAL_PLATFORM_STAIRS15]
 TUTORIAL_SGO = [TUTORIAL_BACKGROUND]
@@ -2216,10 +2218,9 @@ while True:
 
     if (current_menu):
         if (current_menu is PAUSE_MENU) and current_game:
-            current_game.redraw_frame()   # draw frozen game as background
+            current_game.redraw_frame()
         current_menu.redraw_frame()
         if (current_menu == SETTINGS_MENU):
-            # existing settings code...
             hicontrast = HICONTRAST_BUTTON.getValue()
             bgm_volume = 1 + (MUSIC_SLIDER.getValue() - 5) * 0.2
             sfx_volume = 1 + (SOUND_SLIDER.getValue() - 5) * 0.2
