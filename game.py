@@ -538,6 +538,9 @@ class Player(pygame.sprite.Sprite):
         self.dodge_on_cooldown = True
 
         self.record_input("DODGE") # for combos
+
+        sfx = WHOOSH
+        sfx.play()
         
         Callback(self.undodge, DODGE_GRACE_PERIOD_FRAMES)
         Callback(self.reset_dodge_cooldown, DODGE_COOLDOWN_FRAMES)
@@ -1540,6 +1543,7 @@ HURT2 = SoundEffect(SoundFile("HURT1", "audio/hurt2.ogg"))
 HURT3 = SoundEffect(SoundFile("HURT1", "audio/hurt3.ogg"))
 
 HURT = [HURT1, HURT2, HURT3]
+WHOOSH = SoundEffect(SoundFile("WHOOSH", "audio/whoosh.mp3"))
 
 #endregion
 
