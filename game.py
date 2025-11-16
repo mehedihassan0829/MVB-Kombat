@@ -1842,6 +1842,18 @@ def change_to_map_menu():
     global current_game 
     current_game = None
 
+    WILLS_PLAYER1.reset_sprite(p1_character)
+    MVB_PLAYER1.reset_sprite(p1_character)
+    CLIFTON_PLAYER1.reset_sprite(p1_character)
+    
+    WILLS_PLAYER2.reset_sprite(p2_character)
+    MVB_PLAYER2.reset_sprite(p2_character)
+    CLIFTON_PLAYER2.reset_sprite(p2_character)
+
+    WILLS_AIPLAYER2.reset_sprite(p2_character)
+    MVB_AIPLAYER2.reset_sprite(p2_character)
+    CLIFTON_AIPLAYER2.reset_sprite(p2_character)
+
 def load_game_over_menu():
     SCREENSWIPE.do_effect()
     Callback(change_to_gameover_menu, 15)
