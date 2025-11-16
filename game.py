@@ -109,6 +109,7 @@ PLAYER1_KEYJUMP = pygame.K_w
 PLAYER1_KEYDUCK = pygame.K_s
 PLAYER1_KEYPUNCH = pygame.K_j
 PLAYER1_KEYKICK = pygame.K_k
+PLAYER1_KEYDODGE = pygame.K_l
 
 PLAYER2_SPAWN_POSITION = (2 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 3, ground_y)
 PLAYER2_KEYLEFT = pygame.K_LEFT
@@ -117,6 +118,7 @@ PLAYER2_KEYJUMP = pygame.K_UP
 PLAYER2_KEYDUCK = pygame.K_DOWN
 PLAYER2_KEYPUNCH = pygame.K_PERIOD
 PLAYER2_KEYKICK = pygame.K_SLASH
+PLAYER2_KEYDODGE = pygame.K_COMMA
 
 NO_KEY = pygame.K_UNKNOWN
 
@@ -139,8 +141,12 @@ class Hitbox(object):
     def draw(self):
         self.surface_ref.blit(self.image, self.rect) # draw to screen
 
+DODGE_COOLDOWN_FRAMES = 30 # 30 frames
+DODGE_GRACE_PERIOD_FRAMES = 15 # 15 frames grace period
+DODGE_MOVE_DISTANCE = 40
+
 class Player(pygame.sprite.Sprite):
-    def __init__(self, surface, key_left, key_right, key_jump, key_duck, key_punch, key_kick, spawn_position, direction, healthbar_offset, sprites, game, health, display_healthbar, tutorial):
+    def __init__(self, surface, key_left, key_right, key_jump, key_duck, key_punch, key_kick, key_dodge, spawn_position, direction, healthbar_offset, sprites, game, health, display_healthbar, tutorial):
         super().__init__()
         
         # other attributes
@@ -162,6 +168,8 @@ class Player(pygame.sprite.Sprite):
 
         self.punched = False
         self.kicked = False
+        self.dodging = False
+        self.dodge_on_cooldown = False
 
         self.key_left = key_left
         self.key_right = key_right
@@ -169,6 +177,7 @@ class Player(pygame.sprite.Sprite):
         self.key_duck = key_duck
         self.key_punch = key_punch
         self.key_kick = key_kick
+        self.key_dodge = key_dodge
 
         self.spawn_position = spawn_position
 
@@ -316,6 +325,9 @@ class Player(pygame.sprite.Sprite):
                 self.tutorial_ref.do_tutorial()
                 self.tutorial_ref.has_kicked = True
 
+        if keystate[self.key_dodge] and (not self.dodging) and (not self.dodge_on_cooldown) and (not self.is_ducking) and (not self.is_jumping) and grounded:
+            self.dodge_attack()
+
         if (self.current_animation == "IDLE") and (random.randint(1, 1000) <= 5): # gradually regen health
             if (self.health >= 98 and self.health < 100): self.health += (100 - self.health)
             elif (self.health < 97): self.health += random.randint(1,2)
@@ -420,20 +432,30 @@ class Player(pygame.sprite.Sprite):
             if (self.sprite_handler.anims.get(self.current_animation)): 
                 self.sprite_handler.update_sprite(self.current_animation)
 
-    ## FINISH DUCK AND UNUCK
-    def duck(self):
-        self.is_ducking = True
-        self.speed *= 0.5
-        self.rect.y += PUNCH_ATTACK_HEIGHT * 1.5
-        Callback(self.unduck, 120)
+    def undodge(self):
+        self.dodging = False
+        self.unfreeze()
 
-    def unduck(self):
-        self.rect.y -= PUNCH_ATTACK_HEIGHT * 1.5
-        self.speed /= 0.5
-        self.is_ducking = False
-    ##
+    def reset_dodge_cooldown(self):
+        self.dodge_on_cooldown = False
+
+    def dodge_attack(self):
+        if (self.is_jumping) or (self.is_ducking) or (self.frozen) or (self.dodge_on_cooldown): return
+
+        self.dodging = True
+        self.dodge_on_cooldown = True
+        
+        Callback(self.undodge, DODGE_GRACE_PERIOD_FRAMES)
+        Callback(self.reset_dodge_cooldown, DODGE_COOLDOWN_FRAMES)
+        
+        move_amount = DODGE_MOVE_DISTANCE * self.direction_facing
+        self.rect.move_ip(move_amount, 0)
+        self.period_freeze(DODGE_GRACE_PERIOD_FRAMES)
+        self.do_animation_and_reset("DODGING")
 
     def damage(self, amount, stun_time):
+        if (self.dodging): return
+
         self.health -= amount
         print(f"player damaged {amount} hp and now has {self.health} hp left")
 
@@ -1746,11 +1768,11 @@ TUTORIAL_AUDIO = BackgroundMusic(SoundFile("TUTORIAL_BGM", "audio/tutorial_loop.
 
 MVB_SPAWN_POSITION = PLAYER1_SPAWN_POSITION
 
-TUTORIAL_PLAYER = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, MVB_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, TUTORIAL_GAME, PLAYER_HEALTH, True, TUTORIAL)
+TUTORIAL_PLAYER = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, MVB_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, TUTORIAL_GAME, PLAYER_HEALTH, True, TUTORIAL)
 HITBOX_TUTORIAL_PLAYER = Hitbox(screen, TUTORIAL_PLAYER)
 
 MVB_DUMMY1_SPAWN_POSITION = (2 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 3, 100)
-TUTORIAL_DUMMY1 = Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, MVB_DUMMY1_SPAWN_POSITION, RIGHT, (0, 0), DUMMY_CHARACTER, TUTORIAL_GAME, 2147483647, False, None)
+TUTORIAL_DUMMY1 = Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, MVB_DUMMY1_SPAWN_POSITION, RIGHT, (0, 0), DUMMY_CHARACTER, TUTORIAL_GAME, 2147483647, False, None)
 HITBOX_TUTORIAL_DUMMY1 = Hitbox(screen, TUTORIAL_DUMMY1)
 
 TUTORIAL_PLAYER.attach_opponent(TUTORIAL_DUMMY1, HITBOX_TUTORIAL_DUMMY1)
@@ -1794,10 +1816,10 @@ MVB_GAME_AUDIO = BackgroundMusic(SoundFile("MVB_MAP_BGM", "audio/mvb_map_loop.mp
 MVB_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 MVB_P2_SPAWN_POSITION = MVB_DUMMY1_SPAWN_POSITION
 
-MVB_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, MVB_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
+MVB_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, MVB_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
 HITBOX_MVB_PLAYER1 = Hitbox(screen, MVB_PLAYER1)
 
-MVB_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, MVB_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
+MVB_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, MVB_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
 HITBOX_MVB_PLAYER2 = Hitbox(screen, MVB_PLAYER2)
 
 MVB_PLAYER1.attach_opponent(MVB_PLAYER2, HITBOX_MVB_PLAYER2)
@@ -1820,10 +1842,10 @@ WILLS_GAME_AUDIO = BackgroundMusic(SoundFile("WILLS_MAP_BGM", "audio/wills_loop.
 WILLS_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 WILLS_P2_SPAWN_POSITION = (3.5 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 
-WILLS_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, WILLS_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
+WILLS_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, WILLS_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
 HITBOX_WILLS_PLAYER1 = Hitbox(screen, WILLS_PLAYER1)
 
-WILLS_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, WILLS_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
+WILLS_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, WILLS_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
 HITBOX_WILLS_PLAYER2 = Hitbox(screen, WILLS_PLAYER2)
 
 WILLS_PLAYER1.attach_opponent(WILLS_PLAYER2, HITBOX_WILLS_PLAYER2)
@@ -1863,10 +1885,10 @@ CLIFTON_GAME_AUDIO = BackgroundMusic(SoundFile("CLIFTON_MAP_BGM", "audio/clifton
 CLIFTON_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 6, ground_y)
 CLIFTON_P2_SPAWN_POSITION = (4.3 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 6, ground_y)
 
-CLIFTON_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, CLIFTON_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
+CLIFTON_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, CLIFTON_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
 HITBOX_CLIFTON_PLAYER1 = Hitbox(screen, CLIFTON_PLAYER1)
 
-CLIFTON_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, CLIFTON_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
+CLIFTON_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, CLIFTON_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
 HITBOX_CLIFTON_PLAYER2 = Hitbox(screen, CLIFTON_PLAYER2)
 
 CLIFTON_PLAYER1.attach_opponent(CLIFTON_PLAYER2, HITBOX_CLIFTON_PLAYER2)
