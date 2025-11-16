@@ -259,6 +259,28 @@ class Player(pygame.sprite.Sprite):
         self.input_frame = 0
         self.COMBO_WINDOW_FRAMES = 100
     
+    def reset(self):
+        self.opponent_ref = None
+        self.opponent_hitbox_ref = None
+        self.frozen = False
+        self.health = PLAYER_HEALTH
+        self.dead = False
+        self.is_jumping = False
+        self.is_ducking = False
+        self.speed = PLAYER_SPEED
+        self.vertical_velocity = 0
+        self.punched = False
+        self.kicked = False
+        self.dodging = False
+        self.dodge_on_cooldown = False
+        self.rect.center = self.spawn_position
+        self.rect.y = ground_y - PLAYER_HITBOX_HEIGHT # ground player
+        self.go_idle()
+        self.ignoring_platforms = False
+        self.input_buffer = []
+        self.input_frame = 0
+        self.COMBO_WINDOW_FRAMES = 100
+
     def reset_sprite(self, new_sprites):
         self.sprite_handler.clear_anims()
         self.load_sprites(new_sprites)
@@ -301,6 +323,7 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         if (self.dead): return
+        print(self.speed)
 
         if (self.health <= 0):
             if (self.game_ref.game_timer): self.game_ref.game_timer.kill()
@@ -1836,11 +1859,12 @@ def load_wills():
     global ground_y
     ground_y = WILLS_GROUND_Y
 
-    for player in WILLS_GAME.players:
-        player.reset_position()
-        player.health = PLAYER_HEALTH
-        player.dead = False
-        player.go_idle()
+    WILLS_GAME.players = []
+    WILLS_GAME.player_hitboxes = []
+
+    WILLS_PLAYER1.reset()
+    WILLS_PLAYER2.reset()
+    WILLS_AIPLAYER2.reset()
     
     if (ai_game): 
         print("ai")
@@ -1877,11 +1901,12 @@ def load_mvb():
     global ground_y
     ground_y = MVB_GROUND_Y
 
-    for player in MVB_GAME.players:
-        player.reset_position()
-        player.health = PLAYER_HEALTH
-        player.dead = False
-        player.go_idle()
+    MVB_GAME.players = []
+    MVB_GAME.player_hitboxes = []
+
+    MVB_PLAYER1.reset()
+    MVB_PLAYER2.reset()
+    MVB_AIPLAYER2.reset()
 
     if (ai_game): 
         print("ai")
@@ -1917,11 +1942,12 @@ def load_clifton():
     global ground_y
     ground_y = CLIFTON_GROUND_Y
 
-    for player in CLIFTON_GAME.players:
-        player.reset_position()
-        player.health = PLAYER_HEALTH
-        player.dead = False
-        player.go_idle()
+    CLIFTON_GAME.players = []
+    CLIFTON_GAME.player_hitboxes = []
+
+    CLIFTON_PLAYER1.reset()
+    CLIFTON_PLAYER2.reset()
+    CLIFTON_AIPLAYER2.reset()
 
     if (ai_game): 
         print("ai")
