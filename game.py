@@ -316,6 +316,10 @@ class Player(pygame.sprite.Sprite):
                 self.tutorial_ref.do_tutorial()
                 self.tutorial_ref.has_kicked = True
 
+        if (self.current_animation == "IDLE") and (random.randint(1, 1000) <= 5): # gradually regen health
+            if (self.health >= 98 and self.health < 100): self.health += (100 - self.health)
+            elif (self.health < 97): self.health += random.randint(1,2)
+
     def check_grounded(self):
         if (self.rect.y >= (ground_y - PLAYER_HITBOX_HEIGHT)): # if standind on the main ground 
             return True
@@ -695,7 +699,7 @@ TIMER_X = SCREEN_WIDTH / 2
 TIMER_Y = 60
 
 class GameTimer(object):
-    def __init__(self, surface):
+    def __init__(self, surface, overtime, game):
         self.timer = None
         self.show = False
         self.surface_ref = surface
@@ -703,6 +707,8 @@ class GameTimer(object):
         self.rect = self.image.get_rect()
         self.rect.center = (TIMER_X, TIMER_Y)
         self.image.fill(BLACK)
+        self.overtime = overtime
+        self.game_ref = game
 
     def show_timer(self):
         self.show = True
@@ -716,7 +722,14 @@ class GameTimer(object):
         self.show_timer()
 
     def timer_end(self):
-        self.hide_timer()
+        if (not self.overtime):
+            self.hide_timer()
+            OVERTIME.do_overtime_effect()
+            for player in self.game_ref.players:
+                player.period_freeze(80) 
+            Callback(lambda: self.start_timer(OVERTIME_LENGTH), 80)
+        else:
+            pass
 
     def update(self):
         if (self.show):
@@ -1089,13 +1102,20 @@ class Screenswipe(pygame.sprite.Sprite):
 
 COUNTDOWN_MAX_SPEED = 60
 COUNTDOWN_START_X = SCREEN_WIDTH + 100
-COUNTDOWN_CENTER_Y = SCREEN_HEIGHT / 2
+COUNTDOWN_CENTRE_Y = SCREEN_HEIGHT / 2
 COUNTDOWN_DECEL_FRAMES = 20
 COUNTDOWN_PAUSE_FRAMES = 20
 COUNTDOWN_ACCELERATION_FRAMES = 20
 
 TRANSLUCENT_OVERLAY = "assets/overlay.png"
 COUNTDOWN_IMAGES = ["assets/three.png", "assets/two.png", "assets/one.png"]
+
+class SoundFile(object):
+    def __init__(self, name, path):
+        self.name = name
+        self.path = path
+
+COUNTDOWN_VO = SoundFile("COUNTDOWN_VO", "audio/game_start.ogg")
 
 class Countdown(pygame.sprite.Sprite):
     def __init__(self, surface):
@@ -1106,10 +1126,11 @@ class Countdown(pygame.sprite.Sprite):
         self.image = pygame.image.load(COUNTDOWN_IMAGES[self.current_count]).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect2 = self.image2.get_rect()
-        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTER_Y)
+        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTRE_Y)
         self.rect2.center = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
         self.repeat = None
         self.surface_ref = surface
+        self.vo = None
         
         self.state = "IDLE"
         self.frame_count = 0
@@ -1148,6 +1169,8 @@ class Countdown(pygame.sprite.Sprite):
         self.surface_ref.blit(self.image, self.rect)
 
     def do_countdown(self):
+        self.vo = SoundEffect(COUNTDOWN_VO)
+        self.vo.play()
         self.do_effect()
         Callback(self.do_effect, 61)
         Callback(self.do_effect, 122)
@@ -1160,7 +1183,7 @@ class Countdown(pygame.sprite.Sprite):
         if self.current_count < len(COUNTDOWN_IMAGES):
             self.image = pygame.image.load(COUNTDOWN_IMAGES[self.current_count]).convert_alpha()
         
-        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTER_Y)
+        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTRE_Y)
         self.frame_count = 0
         self.state = "DECELERATE"
         
@@ -1173,17 +1196,102 @@ class Countdown(pygame.sprite.Sprite):
     def reset(self):
         if (self.repeat): self.repeat.kill()
         self.repeat = None
-        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTER_Y)
+        self.rect.center = (COUNTDOWN_START_X, COUNTDOWN_CENTRE_Y)
         self.state = "IDLE"
         self.current_count += 1
 
+OVERTIME_MAX_SPEED = 60
+OVERTIME_START_X = SCREEN_WIDTH + 130
+OVERTIME_CENTRE_Y = SCREEN_HEIGHT / 2
+OVERTIME_DECEL_FRAMES = 20
+OVERTIME_PAUSE_FRAMES = 40
+OVERTIME_ACCELERATION_FRAMES = 20
+
+OVERTIME_SPRITE = "assets/overtime.png"
+
+class Overtime(pygame.sprite.Sprite):
+    def __init__(self, surface):
+        super().__init__()
+        self.current_count = 0
+        self.image2 = pygame.image.load(TRANSLUCENT_OVERLAY).convert_alpha()
+        self.image2 = pygame.transform.scale(self.image2, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.image = pygame.image.load(OVERTIME_SPRITE).convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect2 = self.image2.get_rect()
+        self.rect.center = (OVERTIME_START_X, OVERTIME_CENTRE_Y)
+        self.rect2.center = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+        self.repeat = None
+        self.surface_ref = surface
+        
+        self.state = "IDLE"
+        self.frame_count = 0
+        self.current_speed = 0
+
+        self.overlay_active = False
+
+    def update(self):
+        if self.state == "DECELERATE":
+            progress = self.frame_count / OVERTIME_DECEL_FRAMES
+            self.current_speed = OVERTIME_MAX_SPEED * (1 - progress)
+
+            self.rect.move_ip(-self.current_speed, 0)
+            self.frame_count += 1
+
+            if self.frame_count >= OVERTIME_DECEL_FRAMES:
+                self.state = "PAUSE"
+                self.frame_count = 0
+
+        elif self.state == "ACCELERATE":
+            progress = self.frame_count / OVERTIME_ACCELERATION_FRAMES
+            self.current_speed = OVERTIME_MAX_SPEED * progress # inversely proportional
+
+            self.rect.move_ip(-self.current_speed, 0)
+            self.frame_count += 1
+
+            if self.frame_count >= OVERTIME_ACCELERATION_FRAMES:
+                self.state = "IDLE"
+                self.frame_count = 0
+
+        elif self.state == "IDLE":
+            pass
+
+    def draw(self):
+        if (self.overlay_active): self.surface_ref.blit(self.image2, self.rect2)
+        self.surface_ref.blit(self.image, self.rect)
+
+    def do_overtime_effect(self):
+        self.overlay_active = True
+        self.do_effect()
+        Callback(self.disable_overlay, 80)
+
+    def start_accelerate(self):
+        self.state = "ACCELERATE"
+        self.frame_count = 0
+
+    def do_effect(self):
+        self.rect.center = (OVERTIME_START_X, OVERTIME_CENTRE_Y)
+        self.frame_count = 0
+        self.state = "DECELERATE"
+        
+        if (self.repeat): self.repeat.kill()
+        self.repeat = Repeat(self.update, 1)
+
+        Callback(self.start_accelerate, OVERTIME_DECEL_FRAMES + OVERTIME_PAUSE_FRAMES)
+        Callback(self.reset, 80) 
+
+    def reset(self):
+        if (self.repeat): self.repeat.kill()
+        self.repeat = None
+        self.rect.center = (OVERTIME_START_X, OVERTIME_CENTRE_Y)
+        self.state = "IDLE"
+        self.current_count += 1
+
+    def disable_overlay(self):
+        self.overlay_active = False
+
 SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
 COUNTDOWN = Countdown(screen)
-
-class SoundFile(object):
-    def __init__(self, name, path):
-        self.name = name
-        self.path = path
+OVERTIME = Overtime(screen)
 
 class BackgroundMusic(object):
     def __init__(self, music_file):
@@ -1246,7 +1354,7 @@ class SoundEffect(object):
     
     def set_volume(self, vol):
         if (self.sound):
-            self.sound.set_volume = vol
+            self.sound.set_volume(vol)
 
     def stop(self):
         if (self.sound): self.sound.stop()
@@ -1257,7 +1365,8 @@ class SoundEffect(object):
 
 #region GLOBAL FUNCTIONS
 
-GAME_LENGTH = 120
+GAME_LENGTH = 3
+OVERTIME_LENGTH = 3
 
 # SETTINGS SLIDERS
 
@@ -1363,20 +1472,25 @@ def countdown_sequence():
 def disable_countdown_overlay():
     COUNTDOWN.overlay_active = False
 
+GAME_START_DELAY = 260
+
 def change_game_to_mvb():
     global current_menu 
     current_menu = None
     global current_game 
     current_game = MVB_GAME
     COUNTDOWN.overlay_active = True
+    if (current_bgm): current_bgm.kill()
 
     for player in current_game.players:
-        player.period_freeze(240)
+        player.period_freeze(GAME_START_DELAY)
 
+    current_game.add_timer(GameTimer(screen, False, current_game))
+    Callback(start_mvb, GAME_START_DELAY)
+
+def start_mvb():
     change_bgm(MVB_GAME_AUDIO)
-    
-    current_game.add_timer(GameTimer(screen))
-    Callback(lambda: current_game.game_timer.start_timer(GAME_LENGTH), 240)
+    current_game.game_timer.start_timer(GAME_LENGTH)
 
 def change_game_to_wills():
     global current_menu 
@@ -1384,14 +1498,17 @@ def change_game_to_wills():
     global current_game 
     current_game = WILLS_GAME
     COUNTDOWN.overlay_active = True
+    if (current_bgm): current_bgm.kill()
 
     for player in current_game.players:
-        player.period_freeze(240)
+        player.period_freeze(GAME_START_DELAY)
 
+    current_game.add_timer(GameTimer(screen, False, current_game))
+    Callback(start_wills, GAME_START_DELAY)
+
+def start_wills():
     change_bgm(WILLS_GAME_AUDIO)
-    
-    current_game.add_timer(GameTimer(screen))
-    Callback(lambda: current_game.game_timer.start_timer(GAME_LENGTH), 240)
+    current_game.game_timer.start_timer(GAME_LENGTH)
 
 #endregion
 
@@ -1674,6 +1791,7 @@ while True:
 
     SCREENSWIPE.draw()
     COUNTDOWN.draw()
+    OVERTIME.draw()
     pygame_widgets.update(events)
 
     pygame.display.update()
