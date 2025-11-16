@@ -65,6 +65,7 @@ class AnimatedSprite(object):
         self.length = length
 
 IDLE = AnimatedSprite("IDLE", "assets/spritesheet_idle.png", 4)
+RUNNING = AnimatedSprite("RUNNING", "assets/spritesheet_run.png", 4)
 PUNCHING = AnimatedSprite("PUNCHING", "assets/spritesheet_punch.png", 4)
 KICKING = AnimatedSprite("KICKING", "assets/spritesheet_kick.png", 4)
 JUMPING = AnimatedSprite("JUMPING", "assets/spritesheet_jump.png", 1)
@@ -75,7 +76,7 @@ DEAD = AnimatedSprite("DEAD", "assets/spritesheet_dead.png", 1)
 DUMMY_IDLE = AnimatedSprite("IDLE", "assets/dummy_draft.png", 1)
 DUMMY_FLINCHING = AnimatedSprite("FLINCHING", "assets/dummy_draft.png", 1)
 
-DEFAULT_CHARACTER = [IDLE, PUNCHING, KICKING, JUMPING, FLINCHING, COLLAPSING, DEAD]
+DEFAULT_CHARACTER = [IDLE, RUNNING, PUNCHING, KICKING, JUMPING, FLINCHING, COLLAPSING, DEAD]
 DUMMY_CHARACTER = [DUMMY_IDLE, DUMMY_FLINCHING]
 
 # FONT AND TEXT
@@ -277,7 +278,7 @@ class Player(pygame.sprite.Sprite):
         if (not self.is_jumping) and (not self.is_ducking) and (not grounded):
             self.vertical_velocity = 0
             self.is_jumping = True
-            # doubles as a falling animation
+            # falling animation
             self.current_animation = "JUMPING"
             if not (self.current_animation in self.sprite_handler.anims): return
             self.sprite_handler.update_sprite(self.current_animation)
@@ -345,6 +346,17 @@ class Player(pygame.sprite.Sprite):
             if (self.tutorial_ref): 
                 self.tutorial_ref.do_tutorial()
                 self.tutorial_ref.has_moved = True
+
+        is_moving = keystate[self.key_left] or keystate[self.key_right]
+
+        if grounded and not self.is_jumping and not self.is_ducking:
+            if is_moving:
+                if self.current_animation != "RUNNING":
+                    self.current_animation = "RUNNING"
+                    self.sprite_handler.update_sprite("RUNNING")
+            else:
+                if (self.current_animation != "IDLE") and (self.current_animation != "PUNCHING") and (self.current_animation != "KICKING"):
+                    self.go_idle()
 
         if keystate[self.key_right]:
             if (self.direction_facing == LEFT):
@@ -540,6 +552,9 @@ class Player(pygame.sprite.Sprite):
 
         self.health -= amount
         print(f"player damaged {amount} hp and now has {self.health} hp left")
+
+        hurt_sound = HURT[random.randint(0, len(HURT) - 1)]
+        hurt_sound.play()
 
         HitNotif(amount, self, self.surface_ref)
 
@@ -1499,6 +1514,15 @@ class SoundEffect(object):
     def kill(self):
         if (self.sound): self.sound.stop()
         self.sound = None
+
+#region SFX
+HURT1 = SoundEffect(SoundFile("HURT1", "audio/hurt1.ogg"))
+HURT2 = SoundEffect(SoundFile("HURT1", "audio/hurt2.ogg"))
+HURT3 = SoundEffect(SoundFile("HURT1", "audio/hurt3.ogg"))
+
+HURT = [HURT1, HURT2, HURT3]
+
+#endregion
 
 #region GLOBAL FUNCTIONS
 
