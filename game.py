@@ -24,6 +24,8 @@ callbacks = []
 bgm_loaded = False
 current_bgm = None
 hicontrast = False
+in_countdown = False
+ai_game = False
 
 PAUSE_MENU = None
 paused_game = None
@@ -64,20 +66,68 @@ class AnimatedSprite(object):
         self.spritesheet = spritesheet
         self.length = length
 
-IDLE = AnimatedSprite("IDLE", "assets/spritesheet_idle.png", 4)
-RUNNING = AnimatedSprite("RUNNING", "assets/spritesheet_run.png", 4)
-PUNCHING = AnimatedSprite("PUNCHING", "assets/spritesheet_punch.png", 4)
-KICKING = AnimatedSprite("KICKING", "assets/spritesheet_kick.png", 4)
-JUMPING = AnimatedSprite("JUMPING", "assets/spritesheet_jump.png", 1)
-FLINCHING = AnimatedSprite("FLINCHING", "assets/spritesheet_flinch.png", 3)
-COLLAPSING = AnimatedSprite("COLLAPSING", "assets/spritesheet_collapse.png", 3)
-DEAD = AnimatedSprite("DEAD", "assets/spritesheet_dead.png", 1)
+DEFAULT_IDLE = AnimatedSprite("IDLE", "assets/spritesheet_idle.png", 4)
+DEFAULT_RUNNING = AnimatedSprite("RUNNING", "assets/spritesheet_run.png", 4)
+DEFAULT_PUNCHING = AnimatedSprite("PUNCHING", "assets/spritesheet_punch.png", 4)
+DEFAULT_KICKING = AnimatedSprite("KICKING", "assets/spritesheet_kick.png", 4)
+DEFAULT_JUMPING = AnimatedSprite("JUMPING", "assets/spritesheet_jump.png", 1)
+DEFAULT_FLINCHING = AnimatedSprite("FLINCHING", "assets/spritesheet_flinch.png", 3)
+DEFAULT_COLLAPSING = AnimatedSprite("COLLAPSING", "assets/spritesheet_collapse.png", 3)
+DEFAULT_DEAD = AnimatedSprite("DEAD", "assets/spritesheet_dead.png", 1)
 
-DUMMY_IDLE = AnimatedSprite("IDLE", "assets/dummy_draft.png", 1)
-DUMMY_FLINCHING = AnimatedSprite("FLINCHING", "assets/dummy_draft.png", 1)
+MUSK_IDLE = AnimatedSprite("IDLE", "assets/musk_idle.png", 4)
+MUSK_RUNNING = AnimatedSprite("RUNNING", "assets/musk_run.png", 4)
+MUSK_PUNCHING = AnimatedSprite("PUNCHING", "assets/musk_punch.png", 4)
+MUSK_KICKING = AnimatedSprite("KICKING", "assets/musk_kick.png", 4)
+MUSK_JUMPING = AnimatedSprite("JUMPING", "assets/musk_jump.png", 1)
+MUSK_FLINCHING = AnimatedSprite("FLINCHING", "assets/musk_flinch.png", 3)
+MUSK_COLLAPSING = AnimatedSprite("COLLAPSING", "assets/musk_collapse.png", 3)
+MUSK_DEAD = AnimatedSprite("DEAD", "assets/musk_dead.png", 1)
 
-DEFAULT_CHARACTER = [IDLE, RUNNING, PUNCHING, KICKING, JUMPING, FLINCHING, COLLAPSING, DEAD]
+TIM_IDLE = AnimatedSprite("IDLE", "assets/tim_idle.png", 4)
+TIM_RUNNING = AnimatedSprite("RUNNING", "assets/tim_run.png", 4)
+TIM_PUNCHING = AnimatedSprite("PUNCHING", "assets/tim_punch.png", 4)
+TIM_KICKING = AnimatedSprite("KICKING", "assets/tim_kick.png", 4)
+TIM_JUMPING = AnimatedSprite("JUMPING", "assets/tim_jump.png", 1)
+TIM_FLINCHING = AnimatedSprite("FLINCHING", "assets/tim_flinch.png", 3)
+TIM_COLLAPSING = AnimatedSprite("COLLAPSING", "assets/tim_collapse.png", 3)
+TIM_DEAD = AnimatedSprite("DEAD", "assets/tim_dead.png", 1)
+
+BILL_IDLE = AnimatedSprite("IDLE", "assets/bill_idle.png", 4)
+BILL_RUNNING = AnimatedSprite("RUNNING", "assets/bill_run.png", 4)
+BILL_PUNCHING = AnimatedSprite("PUNCHING", "assets/bill_punch.png", 4)
+BILL_KICKING = AnimatedSprite("KICKING", "assets/bill_kick.png", 4)
+BILL_JUMPING = AnimatedSprite("JUMPING", "assets/bill_jump.png", 1)
+BILL_FLINCHING = AnimatedSprite("FLINCHING", "assets/bill_flinch.png", 3)
+BILL_COLLAPSING = AnimatedSprite("COLLAPSING", "assets/bill_collapse.png", 3)
+BILL_DEAD = AnimatedSprite("DEAD", "assets/bill_dead.png", 1)
+
+MARK_IDLE = AnimatedSprite("IDLE", "assets/mark_idle.png", 4)
+MARK_RUNNING = AnimatedSprite("RUNNING", "assets/mark_run.png", 4)
+MARK_PUNCHING = AnimatedSprite("PUNCHING", "assets/mark_punch.png", 4)
+MARK_KICKING = AnimatedSprite("KICKING", "assets/mark_kick.png", 4)
+MARK_JUMPING = AnimatedSprite("JUMPING", "assets/mark_jump.png", 1)
+MARK_FLINCHING = AnimatedSprite("FLINCHING", "assets/mark_flinch.png", 3)
+MARK_COLLAPSING = AnimatedSprite("COLLAPSING", "assets/mark_collapse.png", 3)
+MARK_DEAD = AnimatedSprite("DEAD", "assets/mark_dead.png", 1)
+
+DUMMY_IDLE = AnimatedSprite("IDLE", "assets/mannequin_idle.png", 1)
+DUMMY_FLINCHING = AnimatedSprite("FLINCHING", "assets/mannequin_flinch.png", 3)
+
+DEFAULT_CHARACTER = [DEFAULT_IDLE, DEFAULT_RUNNING, DEFAULT_PUNCHING, DEFAULT_KICKING, DEFAULT_JUMPING, DEFAULT_FLINCHING, DEFAULT_COLLAPSING, DEFAULT_DEAD]
+
+MUSK_CHARACTER = [MUSK_IDLE, MUSK_RUNNING, MUSK_PUNCHING, MUSK_KICKING, MUSK_JUMPING, MUSK_FLINCHING, MUSK_COLLAPSING, MUSK_DEAD]
+
+TIM_CHARACTER = [TIM_IDLE, TIM_RUNNING, TIM_PUNCHING, TIM_KICKING, TIM_JUMPING, TIM_FLINCHING, TIM_COLLAPSING, TIM_DEAD]
+
+BILL_CHARACTER = [BILL_IDLE, BILL_RUNNING, BILL_PUNCHING, BILL_KICKING, BILL_JUMPING, BILL_FLINCHING, BILL_COLLAPSING, BILL_DEAD]
+
+MARK_CHARACTER = [MARK_IDLE, MARK_RUNNING, MARK_PUNCHING, MARK_KICKING, MARK_JUMPING, MARK_FLINCHING, MARK_COLLAPSING, MARK_DEAD]
+
 DUMMY_CHARACTER = [DUMMY_IDLE, DUMMY_FLINCHING]
+
+p1_character = DEFAULT_CHARACTER
+p2_character = DEFAULT_CHARACTER
 
 # FONT AND TEXT
 
@@ -209,6 +259,10 @@ class Player(pygame.sprite.Sprite):
         self.input_frame = 0
         self.COMBO_WINDOW_FRAMES = 100
     
+    def reset_sprite(self, new_sprites):
+        self.sprite_handler.clear_anims()
+        self.load_sprites(new_sprites)
+
     def reset_position(self):
         self.rect.center = self.spawn_position
         self.rect.y = ground_y - PLAYER_HITBOX_HEIGHT # ground player
@@ -397,6 +451,9 @@ class Player(pygame.sprite.Sprite):
                 self.tutorial_ref.do_tutorial()
                 self.tutorial_ref.has_dodged = True
 
+        if (self.rect.x < 0): self.rect.x = 0
+        if ((SCREEN_WIDTH - PLAYER_SPRITE_WIDTH) < self.rect.x): self.rect.x = (SCREEN_WIDTH - PLAYER_SPRITE_WIDTH)
+
         if (self.current_animation == "IDLE") and (random.randint(1, 1000) <= 5): # gradually regen health
             if (self.health >= 98 and self.health < 100): self.health += (100 - self.health)
             elif (self.health < 97): self.health += random.randint(1,2)
@@ -439,7 +496,7 @@ class Player(pygame.sprite.Sprite):
     def punch_attack(self):
         # freeze for 1/2 second
         self.punched = True
-        Callback(self.unpunch, PUNCHING.length * ANIMATION_LATENCY + 5)
+        Callback(self.unpunch, DEFAULT_PUNCHING.length * ANIMATION_LATENCY + 5)
 
         self.record_input("PUNCH") # for combos
 
@@ -448,7 +505,7 @@ class Player(pygame.sprite.Sprite):
         self.game_ref.attacks.append(attack)
 
         repeat = Repeat(attack.follow_player, 1)
-        Callback(repeat.kill, PUNCHING.length * ANIMATION_LATENCY)
+        Callback(repeat.kill, DEFAULT_PUNCHING.length * ANIMATION_LATENCY)
 
         self.do_animation_and_reset("PUNCHING")
 
@@ -458,7 +515,7 @@ class Player(pygame.sprite.Sprite):
     def kick_attack(self):
         # freeze for 1/2 second
         self.kicked = True
-        Callback(self.unkick, KICKING.length * ANIMATION_LATENCY + 5)
+        Callback(self.unkick, DEFAULT_KICKING.length * ANIMATION_LATENCY + 5)
 
         self.record_input("KICK") # for combos
 
@@ -466,7 +523,7 @@ class Player(pygame.sprite.Sprite):
         self.game_ref.attacks.append(attack)
 
         repeat = Repeat(attack.follow_player, 1)
-        Callback(repeat.kill, KICKING.length * ANIMATION_LATENCY)
+        Callback(repeat.kill, DEFAULT_KICKING.length * ANIMATION_LATENCY)
 
         self.do_animation_and_reset("KICKING")
 
@@ -475,7 +532,7 @@ class Player(pygame.sprite.Sprite):
         # stop other attacks
         self.punched = True
         # go back to normal after large attack done
-        Callback(self.unpunch, PUNCHING.length * ANIMATION_LATENCY + 5)
+        Callback(self.unpunch, DEFAULT_PUNCHING.length * ANIMATION_LATENCY + 5)
         
         heavy_damage = random.randint(40, 50)
         heavy_stun = 80
@@ -484,7 +541,7 @@ class Player(pygame.sprite.Sprite):
         self.game_ref.attacks.append(heavy_attack)
         
         repeat = Repeat(heavy_attack.follow_player, 1)
-        Callback(repeat.kill, PUNCHING.length * ANIMATION_LATENCY)
+        Callback(repeat.kill, DEFAULT_PUNCHING.length * ANIMATION_LATENCY)
 
         # play punch animation
         self.do_animation_and_reset("PUNCHING")
@@ -531,6 +588,16 @@ class Player(pygame.sprite.Sprite):
     def reset_dodge_cooldown(self):
         self.dodge_on_cooldown = False
 
+    def get_dash_left(self):
+        self.direction_facing = LEFT
+        if (self.rect.x < DODGE_MOVE_DISTANCE): return self.rect.x
+        else: return DODGE_MOVE_DISTANCE 
+
+    def get_dash_right(self):
+        self.direction_facing = RIGHT
+        if ((SCREEN_WIDTH - PLAYER_SPRITE_WIDTH) - self.rect.x < DODGE_MOVE_DISTANCE): return (SCREEN_WIDTH - PLAYER_SPRITE_WIDTH) - self.rect.x
+        else: return DODGE_MOVE_DISTANCE
+
     def dodge_attack(self):
         if (self.is_jumping) or (self.is_ducking) or (self.frozen) or (self.dodge_on_cooldown): return
 
@@ -545,6 +612,11 @@ class Player(pygame.sprite.Sprite):
         Callback(self.undodge, DODGE_GRACE_PERIOD_FRAMES)
         Callback(self.reset_dodge_cooldown, DODGE_COOLDOWN_FRAMES)
         
+        move_amount = 0
+
+        if (self.direction_facing == LEFT): move_amount = self.get_dash_left()
+        else: move_amount = self.get_dash_right()
+
         move_amount = DODGE_MOVE_DISTANCE * self.direction_facing
         self.rect.move_ip(move_amount, 0)
         self.period_freeze(DODGE_GRACE_PERIOD_FRAMES)
@@ -556,10 +628,12 @@ class Player(pygame.sprite.Sprite):
         self.health -= amount
         print(f"player damaged {amount} hp and now has {self.health} hp left")
 
-        hurt_sound = HURT[random.randint(0, len(HURT) - 1)]
+        hurt_sound = HURT
         hurt_sound.play()
 
-        HitNotif(amount, self, self.surface_ref)
+        special = False
+        if (amount > 30): special = True
+        HitNotif(amount, self, self.surface_ref, special)
 
         health_ratio = max(self.health, 0) / PLAYER_HEALTH
         print(health_ratio)
@@ -584,6 +658,7 @@ class Player(pygame.sprite.Sprite):
         self.frozen = True
         Callback(self.unfreeze, stun_time)
 
+        print("yes")
         self.do_animation_and_reset("FLINCHING")
 
     def period_freeze(self, time):
@@ -599,19 +674,105 @@ class Player(pygame.sprite.Sprite):
     def draw(self):
         self.surface_ref.blit(self.image, self.rect) # draw to screen
 
+class AI_Player(Player):
+    def __init__(self, surface, key_left, key_right, key_jump, key_duck, key_punch, key_kick, key_dodge, spawn_position, direction, healthbar_offset, sprites, game, health, display_healthbar, tutorial):
+        super().__init__(surface, key_left, key_right, key_jump, key_duck, key_punch, key_kick, key_dodge, spawn_position, direction, healthbar_offset, sprites, game, health, display_healthbar, tutorial)
+        
+        self.decision_timer = 0
+        self.decision_interval = 15  # frames to wait before next action
+        
+    def update(self):
+        if (self.dead): return
+        
+        super().update()
+        
+        # could become dead after update
+        if (self.frozen or self.dead): return
+            
+        self.decision_timer += 1
+        
+        # if we waited long enough to make a decision
+        if (self.decision_timer >= self.decision_interval):
+            self.decision_timer = 0
+            self.make_move_decision()
+    
+    def make_move_decision(self):
+        if (not self.opponent_ref) or (not self.opponent_hitbox_ref): return
+            
+        opponent_dist = abs(self.rect.centerx - self.opponent_ref.rect.centerx)
+        range = PUNCH_ATTACK_WIDTH + PLAYER_HITBOX_WIDTH
+        
+        # if our attack would land
+        if opponent_dist <= range * 1.2:  # Slightly extended range
+            # 50% chance to attack when in range
+            if (random.randint(1,4) == 1):
+                # 50% punch or kick
+                if (random.randint(1,2) == 1):
+                    if (not self.punched) and (not self.kicked):
+                        self.punch_attack()
+                else:
+                    if (not self.punched) and (not self.kicked):
+                        self.kick_attack()
+        
+        # we calculate health to determine how the ai should react to player attacks
+        health_score = self.health / PLAYER_HEALTH
+        fun = None
+        
+        if (health_score >= 0.75 and (random.randint(1, 3) == 1)):
+            fun = self.approach_opponent
+        elif (health_score >= 0.25 and (random.randint(1, 3) == 1)):
+            if (random.randint(1, 10) <= 8):
+                fun = self.approach_opponent
+            else:
+                fun = self.retreat
+        elif (random.randint(1, 5) == 1):
+            fun = self.retreat
+
+        if (fun):
+            repeat = Repeat(fun, 1)
+            Callback(repeat.kill, 15)
+    
+    def approach_opponent(self):
+        if (self.opponent_ref.rect.x < self.rect.x): # to the left
+            self.rect.x -= self.speed
+            self.direction_facing = LEFT
+        else:
+            self.rect.x += self.speed
+            self.direction_facing = RIGHT
+            
+        if (self.current_animation != "PUNCHING" and self.current_animation != "KICKING" and self.current_animation != "RUNNING"):
+            self.current_animation = "RUNNING"
+            self.sprite_handler.update_sprite("RUNNING")
+    
+    def retreat(self):       
+        if (self.opponent_ref.rect.x < self.rect.x): # to the left
+            self.rect.x += self.speed
+            self.direction_facing = RIGHT
+        else:
+            self.rect.x -= self.speed
+            self.direction_facing = LEFT
+            
+        if (self.current_animation != "PUNCHING" and self.current_animation != "KICKING" and self.current_animation != "RUNNING"):
+            self.current_animation = "RUNNING"
+            self.sprite_handler.update_sprite("RUNNING")
+    
+    def damage(self, amount, stun_time, source_direction=None):
+        super().damage(amount, stun_time, source_direction)
+
 PUNCH_ATTACK_WIDTH = 40
 PUNCH_ATTACK_HEIGHT = 20
 PUNCH_ATTACK_OFFSET_X = -40
 PUNCH_ATTACK_OFFSET_Y = 210
 
 class HitNotif(pygame.sprite.Sprite):
-    def __init__(self, damage, player, surface):
+    def __init__(self, damage, player, surface, special=False):
         super().__init__()
         self.damage = damage
         self.surface_ref = surface
         self.player_ref = player
         self.pos_x = player.rect.x
         self.pos_y = player.rect.y
+        self.special = special
 
         self.repeat = Repeat(self.draw, 1)
         Callback(self.kill, 60)
@@ -625,7 +786,9 @@ class HitNotif(pygame.sprite.Sprite):
 
     def draw(self):
         self.move_random()
-        text = font.render(f"{int(self.damage)}", True, RED)
+        text = None
+        if (self.special): text = TITLE_FONT.render(f"{int(self.damage)}", True, GREEN)
+        else: text = font.render(f"{int(self.damage)}", True, RED)
         self.surface_ref.blit(text, (self.pos_x, self.pos_y))
 
     def kill(self):
@@ -790,7 +953,7 @@ TOAST_WIDTH = SCREEN_WIDTH / 2
 TOAST_HEIGHT = 32 
 
 class Toast(pygame.sprite.Sprite):
-    def __init__(self, surface, text, display_time, game, on_kill_callback):
+    def __init__(self, surface, text, display_time, on_kill_callback):
         super().__init__()
         self.image = pygame.Surface((TOAST_WIDTH, TOAST_HEIGHT))
         self.image.fill(BLACK)
@@ -799,7 +962,6 @@ class Toast(pygame.sprite.Sprite):
         self.text = text
         self.surface_ref = surface
         self.display_time = display_time
-        self.game_ref = game
         self.on_kill_callback = on_kill_callback
 
         Callback(self.kill, display_time)
@@ -977,6 +1139,9 @@ class SpriteHandler(object):
         self.game_ref = game
         self.repeat = None
     
+    def clear_anims(self):
+        self.anims.clear()
+
     def add_anim(self, name, frames):
         self.anims[name] = frames
 
@@ -1240,7 +1405,7 @@ class Tutorial(object):
 
         if toast_text:
             self.is_toast_active = True
-            self.game_ref.active_toast = Toast(self.surface_ref, toast_text, 120, self.game_ref, self.toast_finished)
+            self.game_ref.active_toast = Toast(self.surface_ref, toast_text, 120, self.toast_finished)
 
 SWIPE_SPEED = 120
 
@@ -1340,10 +1505,17 @@ class Countdown(pygame.sprite.Sprite):
 
     def do_countdown(self):
         self.vo = SoundEffect(COUNTDOWN_VO)
+        global in_countdown
+        in_countdown = True
         self.vo.play()
         self.do_effect()
         Callback(self.do_effect, 61)
         Callback(self.do_effect, 122)
+        Callback(self.disable_countdown, 200)
+
+    def disable_countdown(self):
+        global in_countdown
+        in_countdown = False
 
     def start_accelerate(self):
         self.state = "ACCELERATE"
@@ -1474,7 +1646,6 @@ class BackgroundMusic(object):
         self.running = False
         try:
             if (bgm_loaded): 
-                print("Audio already loaded.")
                 return
             pygame.mixer.music.load(music_file.path)
             bgm_loaded = True
@@ -1485,7 +1656,6 @@ class BackgroundMusic(object):
         if (self.running): return
         try:
             pygame.mixer.music.load(self.music_file.path)
-            bgm_loaded = True
         except:
             print(f"Could not locate audio resource: {self.music_file.path}")
         self.play()
@@ -1539,11 +1709,8 @@ class SoundEffect(object):
         self.sound = None
 
 #region SFX
-HURT1 = SoundEffect(SoundFile("HURT1", "audio/hurt1.ogg"))
-HURT2 = SoundEffect(SoundFile("HURT1", "audio/hurt2.ogg"))
-HURT3 = SoundEffect(SoundFile("HURT1", "audio/hurt3.ogg"))
 
-HURT = [HURT1, HURT2, HURT3]
+HURT = SoundEffect(SoundFile("HURT", "audio/hurt.ogg"))
 WHOOSH = SoundEffect(SoundFile("WHOOSH", "audio/whoosh.mp3"))
 
 #endregion
@@ -1608,7 +1775,12 @@ def change_to_settings_menu():
 def show_settings_widgets():
     for w in SETTINGS_WIDGETS: w.show()
 
-def load_map_select_menu():
+def load_map_select_menu_withai():
+    load_map_select_menu(True)
+
+def load_map_select_menu(ai=False):
+    global ai_game
+    ai_game = ai
     SCREENSWIPE.do_effect()
     Callback(change_to_map_menu, 15)
 
@@ -1670,8 +1842,31 @@ def load_wills():
         player.dead = False
         player.go_idle()
     
+    if (ai_game): 
+        print("ai")
+        WILLS_AIPLAYER2.reset_sprite(p2_character)
+
+        WILLS_PLAYER1.attach_opponent(WILLS_AIPLAYER2, HITBOX_WILLS_AIPLAYER2)
+        WILLS_AIPLAYER2.attach_opponent(WILLS_PLAYER1, HITBOX_WILLS_PLAYER1)
+
+        if (WILLS_PLAYER2 in WILLS_GAME.players): WILLS_GAME.players.remove(WILLS_PLAYER2)
+        if (HITBOX_WILLS_PLAYER2 in WILLS_GAME.players): WILLS_GAME.player_hitboxes.remove(HITBOX_WILLS_PLAYER2)
+
+        WILLS_GAME.add_players([WILLS_AIPLAYER2], [HITBOX_WILLS_AIPLAYER2])
+        WILLS_AIPLAYER2.jump()
+    else:
+        WILLS_PLAYER2.reset_sprite(p2_character)
+        WILLS_PLAYER1.attach_opponent(WILLS_PLAYER2, HITBOX_WILLS_PLAYER2)
+
+        if (WILLS_AIPLAYER2 in WILLS_GAME.players): WILLS_GAME.players.remove(WILLS_AIPLAYER2)
+        if (HITBOX_WILLS_AIPLAYER2 in WILLS_GAME.players): WILLS_GAME.player_hitboxes.remove(HITBOX_WILLS_AIPLAYER2)
+
+        WILLS_GAME.add_players([WILLS_PLAYER2], [HITBOX_WILLS_PLAYER2])
+        WILLS_PLAYER2.jump()
+
+    WILLS_GAME.add_players([WILLS_PLAYER1], [HITBOX_WILLS_PLAYER1])
+    WILLS_PLAYER1.reset_sprite(p1_character)
     WILLS_PLAYER1.jump()
-    WILLS_PLAYER2.jump()
 
 def load_mvb():
     SCREENSWIPE.do_effect()
@@ -1687,6 +1882,29 @@ def load_mvb():
         player.health = PLAYER_HEALTH
         player.dead = False
         player.go_idle()
+
+    if (ai_game): 
+        print("ai")
+        MVB_AIPLAYER2.reset_sprite(p2_character)
+
+        MVB_PLAYER1.attach_opponent(MVB_AIPLAYER2, HITBOX_MVB_AIPLAYER2)
+        MVB_AIPLAYER2.attach_opponent(MVB_PLAYER1, HITBOX_MVB_PLAYER1)
+
+        if (MVB_PLAYER2 in MVB_GAME.players): MVB_GAME.players.remove(MVB_PLAYER2)
+        if (HITBOX_MVB_PLAYER2 in MVB_GAME.players): MVB_GAME.player_hitboxes.remove(HITBOX_MVB_PLAYER2)
+
+        MVB_GAME.add_players([MVB_AIPLAYER2], [HITBOX_MVB_AIPLAYER2])
+    else:
+        MVB_PLAYER2.reset_sprite(p2_character)
+        MVB_PLAYER1.attach_opponent(MVB_PLAYER2, HITBOX_MVB_PLAYER2)
+
+        if (MVB_AIPLAYER2 in MVB_GAME.players): MVB_GAME.players.remove(MVB_AIPLAYER2)
+        if (HITBOX_MVB_AIPLAYER2 in MVB_GAME.players): MVB_GAME.player_hitboxes.remove(HITBOX_MVB_AIPLAYER2)
+
+        MVB_GAME.add_players([MVB_PLAYER2], [HITBOX_MVB_PLAYER2])
+
+    MVB_GAME.add_players([MVB_PLAYER1], [HITBOX_MVB_PLAYER1])
+    MVB_PLAYER1.reset_sprite(p1_character)
 
 def load_clifton():
     SCREENSWIPE.do_effect()
@@ -1704,6 +1922,29 @@ def load_clifton():
         player.health = PLAYER_HEALTH
         player.dead = False
         player.go_idle()
+
+    if (ai_game): 
+        print("ai")
+        CLIFTON_AIPLAYER2.reset_sprite(p2_character)
+
+        CLIFTON_PLAYER1.attach_opponent(CLIFTON_AIPLAYER2, HITBOX_CLIFTON_AIPLAYER2)
+        CLIFTON_AIPLAYER2.attach_opponent(CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER1)
+
+        if (CLIFTON_PLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.players.remove(CLIFTON_PLAYER2)
+        if (HITBOX_CLIFTON_PLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.player_hitboxes.remove(HITBOX_CLIFTON_PLAYER2)
+
+        CLIFTON_GAME.add_players([CLIFTON_AIPLAYER2], [HITBOX_CLIFTON_AIPLAYER2])
+    else:
+        CLIFTON_PLAYER2.reset_sprite(p2_character)
+        CLIFTON_PLAYER1.attach_opponent(CLIFTON_PLAYER2, HITBOX_CLIFTON_PLAYER2)
+
+        if (CLIFTON_AIPLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.players.remove(CLIFTON_AIPLAYER2)
+        if (HITBOX_CLIFTON_AIPLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.player_hitboxes.remove(HITBOX_CLIFTON_AIPLAYER2)
+
+        CLIFTON_GAME.add_players([CLIFTON_PLAYER2], [HITBOX_CLIFTON_PLAYER2])
+
+    CLIFTON_GAME.add_players([CLIFTON_PLAYER1], [HITBOX_CLIFTON_PLAYER1])
+    CLIFTON_PLAYER1.reset_sprite(p1_character)
 
 def countdown_sequence():
     COUNTDOWN.current_count = 0
@@ -1821,7 +2062,8 @@ MAIN_MENU_CLOUDS = SpritedMenuObject(StaticSprite("MAIN_MENU_CLOUDS", "assets/cl
 MAIN_MENU_CLOUDS.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH - 150, 180), 10)
-MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_settings_menu, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH - 150, 250), 10)
+# MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_settings_menu, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH - 150, 250), 10)
+MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_map_select_menu_withai, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH - 150, 250), 10)
 MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_map_select_menu, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH - 150, 320), 10)
 MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_char_menu, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH - 150, 390), 10)
 
@@ -1842,23 +2084,63 @@ CHARACTER_MENU.interactive_elements.append(CHAR_MENU_TITLE)
 
 # Define button layout from prototype
 BUTTON_COORDINATES = [
-    (143, 138), (436, 138), (729, 138),
-    (143, 386), (436, 386), (729, 386)
+    (143, 138), (729, 138),
+    (143, 386), (729, 386)
 ]
 
 BUTTON_SIZE = (128, 128)
 
-CHAR_NAMES = ["SHADI", "IMAD", "MEHEDI", "LUCA", "NOOR", "HAMA"]
-char_button_asset = StaticSprite("CHAR_BUTTON", "assets/button_placeholder.png")
+CHAR_NAMES = ["'KHABIB' MUSK", "TIM 'BRUCE' LEE", "BILL 'ALI' GATES", "MARK 'MAYWEATHER' Z."]
+CHAR_SELECTION = [MUSK_CHARACTER, TIM_CHARACTER, BILL_CHARACTER, MARK_CHARACTER]
 
-for i in range(6):
+def f_musk():
+    global p1_character
+    p1_character = MUSK_CHARACTER
+    global p2_character
+    p2_character = CHAR_SELECTION[random.randint(0, 3)]
+    toast = Toast(screen, f"Player 1 selected: 'Khabib' Musk", 120, None)
+    repeat = Repeat(toast.draw, 1)
+    Callback(repeat.kill, 120)
+
+def f_tim():
+    global p1_character
+    p1_character = TIM_CHARACTER
+    global p2_character
+    p2_character = CHAR_SELECTION[random.randint(0, 3)]
+    toast = Toast(screen, f"Player 1 selected: Tim 'Bruce' Lee", 120, None)
+    repeat = Repeat(toast.draw, 1)
+    Callback(repeat.kill, 120)
+
+def f_bill():
+    global p1_character
+    p1_character = BILL_CHARACTER
+    global p2_character
+    p2_character = CHAR_SELECTION[random.randint(0, 3)]
+    toast = Toast(screen, f"Player 1 selected: Bill 'Ali' Gates", 120, None)
+    repeat = Repeat(toast.draw, 1)
+    Callback(repeat.kill, 120)
+
+def f_mark():
+    global p1_character
+    p1_character = MARK_CHARACTER
+    global p2_character
+    p2_character = CHAR_SELECTION[random.randint(0, 3)]
+    toast = Toast(screen, f"Player 1 selected: Mark 'Mayweather' Z.", 120, None)
+    repeat = Repeat(toast.draw, 1)
+    Callback(repeat.kill, 120)
+
+CHAR_FUNCS = [f_musk, f_tim, f_bill, f_mark]
+
+ASSETS = [StaticSprite("MUSK_PROFILE", "assets/musk_profile.png"), StaticSprite("TIM_PROFILE", "assets/tim_profile.png"), StaticSprite("BILL_PROFILE", "assets/bill_profile.png"), StaticSprite("MUSK_PROFILE", "assets/mark_profile.png")]
+
+for i in range(4):
     name = CHAR_NAMES[i]
     tl = BUTTON_COORDINATES[i]
     
     center_x = tl[0] + BUTTON_SIZE[0] / 2
     center_y = tl[1] + BUTTON_SIZE[1] / 2
 
-    char_button = Button(screen, change_to_main_menu, char_button_asset, (center_x, center_y), 10)
+    char_button = Button(screen, CHAR_FUNCS[i], ASSETS[i], (center_x, center_y), 10)
     char_button.change_dimensions(BUTTON_SIZE)
     CHARACTER_MENU.add_button(char_button)
     
@@ -1919,6 +2201,8 @@ MAP_SELECT_MENU.interactive_elements.append(MAP_MENU_TITLE)
 
 for button in MAP_SELECT_BUTTONS:
     MAP_SELECT_MENU.add_button(button)
+
+MAP_SELECT_MENU.add_button(BACK_BUTTON)
 
 #endregion
 
@@ -2005,7 +2289,7 @@ TUTORIAL_AUDIO = BackgroundMusic(SoundFile("TUTORIAL_BGM", "audio/tutorial_loop.
 
 MVB_SPAWN_POSITION = PLAYER1_SPAWN_POSITION
 
-TUTORIAL_PLAYER = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, MVB_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, TUTORIAL_GAME, PLAYER_HEALTH, True, TUTORIAL)
+TUTORIAL_PLAYER = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, MVB_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, p1_character, TUTORIAL_GAME, PLAYER_HEALTH, True, TUTORIAL)
 HITBOX_TUTORIAL_PLAYER = Hitbox(screen, TUTORIAL_PLAYER)
 
 MVB_DUMMY1_SPAWN_POSITION = (2 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 3, 100)
@@ -2053,23 +2337,25 @@ MVB_GAME_AUDIO = BackgroundMusic(SoundFile("MVB_MAP_BGM", "audio/mvb_map_loop.mp
 MVB_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 MVB_P2_SPAWN_POSITION = MVB_DUMMY1_SPAWN_POSITION
 
-MVB_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, MVB_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
+MVB_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, MVB_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, p1_character, MVB_GAME, PLAYER_HEALTH, True, None)
 HITBOX_MVB_PLAYER1 = Hitbox(screen, MVB_PLAYER1)
 
-MVB_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, MVB_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, MVB_GAME, PLAYER_HEALTH, True, None)
+MVB_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, MVB_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, p2_character, MVB_GAME, PLAYER_HEALTH, True, None)
 HITBOX_MVB_PLAYER2 = Hitbox(screen, MVB_PLAYER2)
 
-MVB_PLAYER1.attach_opponent(MVB_PLAYER2, HITBOX_MVB_PLAYER2)
-MVB_PLAYER2.attach_opponent(MVB_PLAYER1, HITBOX_MVB_PLAYER1)
+MVB_AIPLAYER2 = AI_Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, MVB_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, p2_character, MVB_GAME, PLAYER_HEALTH, True, None)
+HITBOX_MVB_AIPLAYER2 = Hitbox(screen, MVB_AIPLAYER2)
 
-MVB_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9, TUTORIAL_PLATFORM_STAIRS10]
+#MVB_GAME.add_players([MVB_PLAYER1, MVB_PLAYER2], [HITBOX_MVB_PLAYER1, HITBOX_MVB_PLAYER2])
+
+MVB_IGO = [TUTORIAL_PLATFORM_UPSTAIRS, TUTORIAL_PLATFORM_STAIRS1, TUTORIAL_PLATFORM_STAIRS2, TUTORIAL_PLATFORM_STAIRS3, TUTORIAL_PLATFORM_STAIRS4, TUTORIAL_PLATFORM_STAIRS5, TUTORIAL_PLATFORM_STAIRS6, TUTORIAL_PLATFORM_STAIRS7, TUTORIAL_PLATFORM_STAIRS8, TUTORIAL_PLATFORM_STAIRS9, TUTORIAL_PLATFORM_STAIRS10, TUTORIAL_PLATFORM_STAIRS11, TUTORIAL_PLATFORM_STAIRS12, TUTORIAL_PLATFORM_STAIRS13, TUTORIAL_PLATFORM_STAIRS14, TUTORIAL_PLATFORM_STAIRS15]
 MVB_SGO = [TUTORIAL_BACKGROUND]
 MVB_GROUND_Y = 494
 ground_y = MVB_GROUND_Y
 MVB_MAP = Map("MVB_MAP", MVB_IGO, MVB_SGO, MVB_GROUND_Y)
 
-MVB_GAME.add_players([MVB_PLAYER1, MVB_PLAYER2], [HITBOX_MVB_PLAYER1, HITBOX_MVB_PLAYER2])
 MVB_GAME.load_map(MVB_MAP)
+
 #endregion
 
 #region WILLS_GAME
@@ -2079,14 +2365,14 @@ WILLS_GAME_AUDIO = BackgroundMusic(SoundFile("WILLS_MAP_BGM", "audio/wills_loop.
 WILLS_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 WILLS_P2_SPAWN_POSITION = (3.5 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 5, ground_y)
 
-WILLS_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, WILLS_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
+WILLS_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, WILLS_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, p1_character, WILLS_GAME, PLAYER_HEALTH, True, None)
 HITBOX_WILLS_PLAYER1 = Hitbox(screen, WILLS_PLAYER1)
 
-WILLS_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, WILLS_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, WILLS_GAME, PLAYER_HEALTH, True, None)
+WILLS_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, WILLS_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, p2_character, WILLS_GAME, PLAYER_HEALTH, True, None)
 HITBOX_WILLS_PLAYER2 = Hitbox(screen, WILLS_PLAYER2)
 
-WILLS_PLAYER1.attach_opponent(WILLS_PLAYER2, HITBOX_WILLS_PLAYER2)
-WILLS_PLAYER2.attach_opponent(WILLS_PLAYER1, HITBOX_WILLS_PLAYER1)
+WILLS_AIPLAYER2 = AI_Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, WILLS_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, p2_character, WILLS_GAME, PLAYER_HEALTH, True, None)
+HITBOX_WILLS_AIPLAYER2 = Hitbox(screen, WILLS_AIPLAYER2)
 
 WILLS_BACKGROUND = SpritedGameObject(StaticSprite("WILLS_BACKGROUND", "assets/wills_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
 WILLS_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -2111,7 +2397,6 @@ WILLS_GROUND_Y = 450
 ground_y = WILLS_GROUND_Y
 WILLS_MAP = Map("WILLS_MAP", WILLS_IGO, WILLS_SGO, WILLS_GROUND_Y)
 
-WILLS_GAME.add_players([WILLS_PLAYER1, WILLS_PLAYER2], [HITBOX_WILLS_PLAYER1, HITBOX_WILLS_PLAYER2])
 WILLS_GAME.load_map(WILLS_MAP)
 #endregion
 
@@ -2122,14 +2407,17 @@ CLIFTON_GAME_AUDIO = BackgroundMusic(SoundFile("CLIFTON_MAP_BGM", "audio/clifton
 CLIFTON_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 6, ground_y)
 CLIFTON_P2_SPAWN_POSITION = (4.3 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 6, ground_y)
 
-CLIFTON_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, CLIFTON_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
+CLIFTON_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_KEYDODGE, CLIFTON_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, p1_character, CLIFTON_GAME, PLAYER_HEALTH, True, None)
 HITBOX_CLIFTON_PLAYER1 = Hitbox(screen, CLIFTON_PLAYER1)
 
-CLIFTON_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, CLIFTON_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
+CLIFTON_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_KEYDODGE, CLIFTON_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, p2_character, CLIFTON_GAME, PLAYER_HEALTH, True, None)
 HITBOX_CLIFTON_PLAYER2 = Hitbox(screen, CLIFTON_PLAYER2)
 
-CLIFTON_PLAYER1.attach_opponent(CLIFTON_PLAYER2, HITBOX_CLIFTON_PLAYER2)
-CLIFTON_PLAYER2.attach_opponent(CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER1)
+CLIFTON_AIPLAYER2 = AI_Player(screen, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, NO_KEY, CLIFTON_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, p2_character, CLIFTON_GAME, PLAYER_HEALTH, True, None)
+HITBOX_CLIFTON_AIPLAYER2 = Hitbox(screen, CLIFTON_AIPLAYER2)
+
+# CLIFTON_PLAYER1.attach_opponent(CLIFTON_PLAYER2, HITBOX_CLIFTON_PLAYER2)
+# CLIFTON_PLAYER2.attach_opponent(CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER1)
 
 CLIFTON_BACKGROUND = SpritedGameObject(StaticSprite("CLIFTON_BACKGROUND", "assets/clifton_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
 CLIFTON_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -2146,46 +2434,8 @@ CLIFTON_GROUND_Y = 300
 ground_y = CLIFTON_GROUND_Y
 CLIFTON_MAP = Map("CLIFTON_MAP", CLIFTON_IGO, CLIFTON_SGO, CLIFTON_GROUND_Y)
 
-CLIFTON_GAME.add_players([CLIFTON_PLAYER1, CLIFTON_PLAYER2], [HITBOX_CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER2])
+# CLIFTON_GAME.add_players([CLIFTON_PLAYER1, CLIFTON_PLAYER2], [HITBOX_CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER2])
 CLIFTON_GAME.load_map(CLIFTON_MAP)
-
-#endregion
-
-#region TEST_GAME
-
-# TESTING GAME
-
-'''
-PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, PLAYER1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, GAME)
-HITBOX_PLAYER1 = Hitbox(screen, PLAYER1)
-
-PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, PLAYER2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, GAME)
-HITBOX_PLAYER2 = Hitbox(screen, PLAYER2)
-
-PLAYER1.attach_opponent(PLAYER2, HITBOX_PLAYER2)
-PLAYER2.attach_opponent(PLAYER1, HITBOX_PLAYER1)
-'''
-
-## GAME OBJECTS
-
-'''
-# platforms add themselves automatically to game
-plat = Platform((196 * 2, 16), (480, 300), screen)
-plat_sprite = SpritedGameObject(StaticSprite("PLATFORM", "assets/platform.png"), (350, 300), screen, 10, FOREGROUND_OBJECT)
-plat_sprite.scale(2)
-background = SpritedGameObject(StaticSprite("BACKGROUND", "assets/background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
-background.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-TESTING_IGO = [plat]
-TESTING_SGO = [plat_sprite, background]
-TESTING_MAP = Map("TESTING_MAP", TESTING_IGO, TESTING_SGO)
-
-GAME.load_map(TESTING_MAP)
-
-# ADD DEFINITIONS TO GAME
-
-GAME.add_players([PLAYER1, PLAYER2], [HITBOX_PLAYER1, HITBOX_PLAYER2])
-'''
 
 #endregion
 
@@ -2207,7 +2457,7 @@ while True:
                 if isinstance(element, Button):
                     element.handle_click(event)
 
-        if (event.type == pygame.KEYDOWN) and (event.key == pygame.K_ESCAPE):
+        if (event.type == pygame.KEYDOWN) and (event.key == pygame.K_ESCAPE) and (not in_countdown):
             if current_game and (current_menu is None):
                 pause_game()
             elif (current_menu is PAUSE_MENU):
@@ -2238,8 +2488,13 @@ while True:
     SCREENSWIPE.draw()
     COUNTDOWN.draw()
     SWIPESPRITE.draw()
-    pygame_widgets.update(events)
+    
+    if (hicontrast):
+        pixel_array = pygame.surfarray.pixels3d(screen)
+        pixel_array[:,:,:] = 255 - pixel_array[:,:,:]
+        del pixel_array
 
+    pygame_widgets.update(events)
     pygame.display.update()
     clock.tick(FPS)
 
