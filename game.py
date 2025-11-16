@@ -196,6 +196,11 @@ class Player(pygame.sprite.Sprite):
         self.healthbar = HealthBar(self.health, self.surface_ref, healthbar_offset)
 
         self.ignoring_platforms = False
+
+        # combo tracking 
+        self.input_buffer = []
+        self.input_frame = 0
+        self.COMBO_WINDOW_FRAMES = 100
     
     def reset_position(self):
         self.rect.center = self.spawn_position
@@ -209,11 +214,31 @@ class Player(pygame.sprite.Sprite):
             spritesheet = Spritesheet(sprite.spritesheet)
             self.sprite_handler.add_anim(sprite.name, spritesheet.load_image_strip((0, 0, 64, 64), sprite.length))
 
+    def record_input(self, action):
+        self.input_buffer.append((action, self.input_frame))
+        cutoff = self.input_frame - self.COMBO_WINDOW_FRAMES
+
+        # keep only recent inputs
+        self.input_buffer = [(a,f) for (a,f) in self.input_buffer if f >= cutoff]
+        self.check_combos()
+
+    def check_combos(self):
+        seq = [a for (a, f) in self.input_buffer]
+        if len(seq) < 3: return
+
+        last3 = seq[-3:]
+        if last3 == ['KICK', 'PUNCH', 'PUNCH'] or last3 == ['KICK', 'KICK', 'DODGE']:
+            # consume combo entries so it doesn't repeatedly fire
+            self.input_buffer = []
+            self.trigger_large_attack()
+
     def update(self):
         global current_game
         if (not current_game): return
 
         self.healthbar.update(f"{self.health}", self.health) # update healthbar
+        
+        self.input_frame += 1
 
         keystate = pygame.key.get_pressed()
 
@@ -328,6 +353,10 @@ class Player(pygame.sprite.Sprite):
         if keystate[self.key_dodge] and (not self.dodging) and (not self.dodge_on_cooldown) and (not self.is_ducking) and (not self.is_jumping) and grounded:
             self.dodge_attack()
 
+            if (self.tutorial_ref): 
+                self.tutorial_ref.do_tutorial()
+                self.tutorial_ref.has_dodged = True
+
         if (self.current_animation == "IDLE") and (random.randint(1, 1000) <= 5): # gradually regen health
             if (self.health >= 98 and self.health < 100): self.health += (100 - self.health)
             elif (self.health < 97): self.health += random.randint(1,2)
@@ -372,8 +401,10 @@ class Player(pygame.sprite.Sprite):
         self.punched = True
         Callback(self.unpunch, PUNCHING.length * ANIMATION_LATENCY + 5)
 
+        self.record_input("PUNCH") # for combos
+
         # do punch attack
-        attack = PunchAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref)
+        attack = PunchAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=random.randint(40, 55))
         self.game_ref.attacks.append(attack)
 
         repeat = Repeat(attack.follow_player, 1)
@@ -389,13 +420,34 @@ class Player(pygame.sprite.Sprite):
         self.kicked = True
         Callback(self.unkick, KICKING.length * ANIMATION_LATENCY + 5)
 
-        attack = KickAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref)
+        self.record_input("KICK") # for combos
+
+        attack = KickAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=random.randint(40, 55))
         self.game_ref.attacks.append(attack)
 
         repeat = Repeat(attack.follow_player, 1)
         Callback(repeat.kill, KICKING.length * ANIMATION_LATENCY)
 
         self.do_animation_and_reset("KICKING")
+
+    def trigger_large_attack(self):
+        print("large attack")
+        # stop other attacks
+        self.punched = True
+        # go back to normal after large attack done
+        Callback(self.unpunch, PUNCHING.length * ANIMATION_LATENCY + 5)
+        
+        heavy_damage = random.randint(90, 150)
+        heavy_stun = 80
+        heavy_attack = PunchAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=heavy_damage, stun_time=heavy_stun)
+        
+        self.game_ref.attacks.append(heavy_attack)
+        
+        repeat = Repeat(heavy_attack.follow_player, 1)
+        Callback(repeat.kill, PUNCHING.length * ANIMATION_LATENCY)
+
+        # play punch animation
+        self.do_animation_and_reset("PUNCHING")
 
     def do_animation_and_reset(self, anim):
         self.current_animation = anim
@@ -444,6 +496,8 @@ class Player(pygame.sprite.Sprite):
 
         self.dodging = True
         self.dodge_on_cooldown = True
+
+        self.record_input("DODGE") # for combos
         
         Callback(self.undodge, DODGE_GRACE_PERIOD_FRAMES)
         Callback(self.reset_dodge_cooldown, DODGE_COOLDOWN_FRAMES)
@@ -515,7 +569,7 @@ class HitNotif(pygame.sprite.Sprite):
         super().kill()
 
 class PunchAttack(pygame.sprite.Sprite):
-    def __init__(self, player, opponent_hitbox, direction, surface, game):
+    def __init__(self, player, opponent_hitbox, direction, surface, game, damage=50, stun_time=50):
         super().__init__()
         self.image = pygame.Surface((PUNCH_ATTACK_WIDTH, PUNCH_ATTACK_HEIGHT))
         self.image.fill(ORANGE)
@@ -525,6 +579,9 @@ class PunchAttack(pygame.sprite.Sprite):
         self.surface_ref = surface
         self.opponent_hitbox_ref = opponent_hitbox
         self.flag = True
+
+        self.damage_amount = damage
+        self.stun_time = stun_time
 
         if (direction == RIGHT):
             self.rect.center = (self.player_ref.rect.x + PLAYER_SPRITE_WIDTH + PUNCH_ATTACK_OFFSET_X, self.player_ref.rect.y - PLAYER_SPRITE_HEIGHT + PUNCH_ATTACK_OFFSET_Y)
@@ -536,7 +593,7 @@ class PunchAttack(pygame.sprite.Sprite):
     def update(self):
         if (self.rect.colliderect(self.opponent_hitbox_ref.rect) and (self.flag)):
             self.flag = False
-            self.opponent_hitbox_ref.player_ref.damage(50, 50)
+            self.opponent_hitbox_ref.player_ref.damage(self.damage_amount, self.stun_time)
             self.kill()
 
         if (DISPLAY_HITBOXES): self.surface_ref.blit(self.image, self.rect) # draw to screen
@@ -557,7 +614,7 @@ KICK_ATTACK_OFFSET_X = -40
 KICK_ATTACK_OFFSET_Y = 220
 
 class KickAttack(pygame.sprite.Sprite):
-    def __init__(self, player, opponent_hitbox, direction, surface, game):
+    def __init__(self, player, opponent_hitbox, direction, surface, game, damage=50, stun_time=50):
         super().__init__()
         self.image = pygame.Surface((KICK_ATTACK_WIDTH, KICK_ATTACK_HEIGHT))
         self.image.fill(GREEN)
@@ -567,6 +624,9 @@ class KickAttack(pygame.sprite.Sprite):
         self.surface_ref = surface
         self.opponent_hitbox_ref = opponent_hitbox
         self.flag = True
+
+        self.damage = damage
+        self.stun_time = stun_time
 
         if (direction == RIGHT):
             self.rect.center = (self.player_ref.rect.x + PLAYER_SPRITE_WIDTH + KICK_ATTACK_OFFSET_X, self.player_ref.rect.y - PLAYER_SPRITE_HEIGHT + KICK_ATTACK_OFFSET_Y)
@@ -578,7 +638,7 @@ class KickAttack(pygame.sprite.Sprite):
     def update(self):
         if (self.rect.colliderect(self.opponent_hitbox_ref.rect) and (self.flag)):
             self.flag = False
-            self.opponent_hitbox_ref.player_ref.damage(50, 50)
+            self.opponent_hitbox_ref.player_ref.damage(self.damage, self.stun_time)
             self.kill()
 
         if (DISPLAY_HITBOXES): self.surface_ref.blit(self.image, self.rect) # draw to screen
@@ -793,7 +853,7 @@ class HealthBar(pygame.sprite.Sprite):
         self.offset = offset
 
     def update(self, label, health):
-        text = font.render(label, True, RED)
+        text = TITLE_FONT.render(label, True, RED)
         self.surface_ref.blit(text, self.offset)
         
         new_barwidth = int((health / self.maxhealth) * HEALTHBAR_WIDTH)
@@ -1096,7 +1156,9 @@ class Tutorial(object):
         elif (not self.has_kicked):
             toast_text = "Use the K key to kick!"
         elif (not self.has_dodged):
-            toast_text = "DODGE TUTORIAL"
+            toast_text = "Use the L key to dodge!"
+        else:
+            toast_text = "Congrats! You've completed the tutorial!"
 
         if toast_text:
             self.is_toast_active = True
