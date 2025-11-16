@@ -141,7 +141,7 @@ SUBTITLE_FONT = pygame.font.Font(FONTFACE, 36)
 SMALLER_FONT = pygame.font.Font(FONTFACE, 20)
 
 screen.fill(WHITE) # change bg color to white
-pygame.display.set_caption("My game") # changes title of game
+pygame.display.set_caption("MVB KOMBAT") # changes title of game
 
 GRAVITY = 1
 
@@ -2115,15 +2115,16 @@ MAIN_MENU_CLOUDS = SpritedMenuObject(StaticSprite("MAIN_MENU_CLOUDS", "assets/cl
 MAIN_MENU_CLOUDS.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH - 150, 180), 10)
-# MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_settings_menu, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH - 150, 250), 10)
 MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_map_select_menu_withai, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH - 150, 250), 10)
 MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_map_select_menu, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH - 150, 320), 10)
 MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_char_menu, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH - 150, 390), 10)
+MAIN_MENU_SETTINGS_BUTTON = Button(screen, load_settings_menu, StaticSprite("SETTINGS_BUTTON", "assets/settings_button.png"), (SCREEN_WIDTH - 150, 460), 10)
 
 MAIN_MENU.add_button(MAIN_MENU_TUTORIAL_BUTTON)
 MAIN_MENU.add_button(MAIN_MENU_SINGLEPLAYER_BUTTON)
 MAIN_MENU.add_button(MAIN_MENU_MULTIPLAYER_BUTTON)
 MAIN_MENU.add_button(MAIN_MENU_CHARACTER_BUTTON)
+MAIN_MENU.add_button(MAIN_MENU_SETTINGS_BUTTON)
 #endregion
 
 #region CHARACTER MENU
