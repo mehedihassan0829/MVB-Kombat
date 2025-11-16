@@ -444,7 +444,7 @@ class Player(pygame.sprite.Sprite):
         self.record_input("PUNCH") # for combos
 
         # do punch attack
-        attack = PunchAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=random.randint(40, 55))
+        attack = PunchAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=random.randint(10, 15))
         self.game_ref.attacks.append(attack)
 
         repeat = Repeat(attack.follow_player, 1)
@@ -462,7 +462,7 @@ class Player(pygame.sprite.Sprite):
 
         self.record_input("KICK") # for combos
 
-        attack = KickAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=random.randint(40, 55))
+        attack = KickAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=random.randint(10, 15))
         self.game_ref.attacks.append(attack)
 
         repeat = Repeat(attack.follow_player, 1)
@@ -477,7 +477,7 @@ class Player(pygame.sprite.Sprite):
         # go back to normal after large attack done
         Callback(self.unpunch, PUNCHING.length * ANIMATION_LATENCY + 5)
         
-        heavy_damage = random.randint(90, 150)
+        heavy_damage = random.randint(40, 50)
         heavy_stun = 80
         heavy_attack = PunchAttack(self, self.opponent_hitbox_ref, self.direction_facing, self.surface_ref, self.game_ref, damage=heavy_damage, stun_time=heavy_stun)
         
@@ -547,7 +547,7 @@ class Player(pygame.sprite.Sprite):
         self.period_freeze(DODGE_GRACE_PERIOD_FRAMES)
         self.do_animation_and_reset("DODGING")
 
-    def damage(self, amount, stun_time):
+    def damage(self, amount, stun_time, source_direction=None):
         if (self.dodging): return
 
         self.health -= amount
@@ -557,6 +557,25 @@ class Player(pygame.sprite.Sprite):
         hurt_sound.play()
 
         HitNotif(amount, self, self.surface_ref)
+
+        health_ratio = max(self.health, 0) / PLAYER_HEALTH
+        print(health_ratio)
+
+        if source_direction is None:
+            if self.opponent_ref:
+                source_direction = self.opponent_ref.direction_facing
+            else:
+                source_direction = -self.direction_facing
+
+        KNOCKBACK_H_MULT = 14
+        KNOCKBACK_V_MULT = -9
+
+        knock_x = int(KNOCKBACK_H_MULT / max(health_ratio, 0.6)) * source_direction
+        knock_y = int(KNOCKBACK_V_MULT / max(health_ratio, 0.6))
+
+        self.rect.move_ip(knock_x, 0)
+        self.is_jumping = True
+        self.vertical_velocity = knock_y
 
         # freeze for stun period
         self.frozen = True
@@ -623,7 +642,7 @@ class PunchAttack(pygame.sprite.Sprite):
         self.opponent_hitbox_ref = opponent_hitbox
         self.flag = True
 
-        self.damage_amount = damage
+        self.damage = damage
         self.stun_time = stun_time
 
         if (direction == RIGHT):
@@ -636,7 +655,7 @@ class PunchAttack(pygame.sprite.Sprite):
     def update(self):
         if (self.rect.colliderect(self.opponent_hitbox_ref.rect) and (self.flag)):
             self.flag = False
-            self.opponent_hitbox_ref.player_ref.damage(self.damage_amount, self.stun_time)
+            self.opponent_hitbox_ref.player_ref.damage(self.damage, self.stun_time, self.player_ref.direction_facing)
             self.kill()
 
         if (DISPLAY_HITBOXES): self.surface_ref.blit(self.image, self.rect) # draw to screen
@@ -681,7 +700,7 @@ class KickAttack(pygame.sprite.Sprite):
     def update(self):
         if (self.rect.colliderect(self.opponent_hitbox_ref.rect) and (self.flag)):
             self.flag = False
-            self.opponent_hitbox_ref.player_ref.damage(self.damage, self.stun_time)
+            self.opponent_hitbox_ref.player_ref.damage(self.damage, self.stun_time, self.player_ref.direction_facing)
             self.kill()
 
         if (DISPLAY_HITBOXES): self.surface_ref.blit(self.image, self.rect) # draw to screen
