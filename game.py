@@ -1377,8 +1377,8 @@ class SoundEffect(object):
 
 #region GLOBAL FUNCTIONS
 
-GAME_LENGTH = 3
-OVERTIME_LENGTH = 3
+GAME_LENGTH = 120
+OVERTIME_LENGTH = 60
 
 # SETTINGS SLIDERS
 
@@ -1506,6 +1506,21 @@ def load_mvb():
         player.reset_position()
         player.health = PLAYER_HEALTH
 
+def load_clifton():
+    SCREENSWIPE.do_effect()
+    Callback(change_game_to_clifton, 15)
+    Callback(countdown_sequence, 60)
+    Callback(disable_countdown_overlay, 243)
+
+    Repeat(random_move_cliftonclouds, 30)
+
+    global ground_y
+    ground_y = CLIFTON_GROUND_Y
+
+    for player in CLIFTON_GAME.players:
+        player.reset_position()
+        player.health = PLAYER_HEALTH
+
 def countdown_sequence():
     COUNTDOWN.current_count = 0
     COUNTDOWN.do_countdown()
@@ -1551,6 +1566,24 @@ def start_wills():
     change_bgm(WILLS_GAME_AUDIO)
     current_game.game_timer.start_timer(GAME_LENGTH)
 
+def change_game_to_clifton():
+    global current_menu 
+    current_menu = None
+    global current_game 
+    current_game = CLIFTON_GAME
+    COUNTDOWN.overlay_active = True
+    if (current_bgm): current_bgm.kill()
+
+    for player in current_game.players:
+        player.period_freeze(GAME_START_DELAY)
+
+    current_game.add_timer(GameTimer(screen, False, current_game))
+    Callback(start_clifton, GAME_START_DELAY)
+
+def start_clifton():
+    change_bgm(CLIFTON_GAME_AUDIO)
+    current_game.game_timer.start_timer(GAME_LENGTH)
+
 def game_end_sequence():
     if (PLAYER1_WON in GAME_OVER_MENU.interactive_elements): GAME_OVER_MENU.interactive_elements.remove(PLAYER1_WON)
     if (PLAYER2_WON in GAME_OVER_MENU.interactive_elements): GAME_OVER_MENU.interactive_elements.remove(PLAYER2_WON)
@@ -1572,6 +1605,12 @@ def game_end_sequence():
     #         GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
 
     load_game_over_menu()
+
+def random_move_cliftonclouds():
+    mult = 1
+    if (CLIFTON_CLOUDS.rect.x > 20): mult = -1
+    if (CLIFTON_CLOUDS.rect.x < -20): mult = 1
+    CLIFTON_CLOUDS.rect.move_ip(random.randint(-2, 2) * mult, random.randint(-1, 1))
 
 #endregion
 
@@ -1667,7 +1706,7 @@ MAP_SELECT_MENU = Menu()
 MAP_SELECT_BUTTONS = [
     Button(screen, load_mvb, StaticSprite("MVB_BUTTON", "assets/mvb_map_button.png"), (190, 338), 10),
     Button(screen, load_wills, StaticSprite("WILLS_BUTTON", "assets/wills_map_button.png"), (515, 338), 10),
-    Button(screen, load_wills, StaticSprite("CLIFTON_BUTTON", "assets/map_button_placeholder.png"), (840, 338), 10)
+    Button(screen, load_clifton, StaticSprite("CLIFTON_BUTTON", "assets/clifton_map_button.png"), (840, 338), 10)
 ]
 
 MAP_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAP_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAP_SELECT_MENU)
@@ -1815,6 +1854,42 @@ WILLS_MAP = Map("WILLS_MAP", WILLS_IGO, WILLS_SGO, WILLS_GROUND_Y)
 
 WILLS_GAME.add_players([WILLS_PLAYER1, WILLS_PLAYER2], [HITBOX_WILLS_PLAYER1, HITBOX_WILLS_PLAYER2])
 WILLS_GAME.load_map(WILLS_MAP)
+#endregion
+
+#region CLIFTON_GAME
+CLIFTON_GAME = Game(False)
+CLIFTON_GAME_AUDIO = BackgroundMusic(SoundFile("CLIFTON_MAP_BGM", "audio/clifton_loop.ogg"))
+
+CLIFTON_P1_SPAWN_POSITION = ((SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 6, ground_y)
+CLIFTON_P2_SPAWN_POSITION = (4.3 * (SCREEN_WIDTH + PLAYER_SPRITE_WIDTH) / 6, ground_y)
+
+CLIFTON_PLAYER1 = Player(screen, PLAYER1_KEYLEFT, PLAYER1_KEYRIGHT, PLAYER1_KEYJUMP, PLAYER1_KEYDUCK, PLAYER1_KEYPUNCH, PLAYER1_KEYKICK, CLIFTON_P1_SPAWN_POSITION, RIGHT, FIRST_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
+HITBOX_CLIFTON_PLAYER1 = Hitbox(screen, CLIFTON_PLAYER1)
+
+CLIFTON_PLAYER2 = Player(screen, PLAYER2_KEYLEFT, PLAYER2_KEYRIGHT, PLAYER2_KEYJUMP, PLAYER2_KEYDUCK, PLAYER2_KEYPUNCH, PLAYER2_KEYKICK, CLIFTON_P2_SPAWN_POSITION, LEFT, SECOND_HEALTHBAR_OFFSET, DEFAULT_CHARACTER, CLIFTON_GAME, PLAYER_HEALTH, True, None)
+HITBOX_CLIFTON_PLAYER2 = Hitbox(screen, CLIFTON_PLAYER2)
+
+CLIFTON_PLAYER1.attach_opponent(CLIFTON_PLAYER2, HITBOX_CLIFTON_PLAYER2)
+CLIFTON_PLAYER2.attach_opponent(CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER1)
+
+CLIFTON_BACKGROUND = SpritedGameObject(StaticSprite("CLIFTON_BACKGROUND", "assets/clifton_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
+CLIFTON_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+CLIFTON_BRIDGE = SpritedGameObject(StaticSprite("CLIFTON_BRIDGE", "assets/clifton_bridge_foreground.png"), (320, 180), screen, 15, FOREGROUND_OBJECT)
+CLIFTON_BRIDGE.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+CLIFTON_CLOUDS = SpritedGameObject(StaticSprite("CLIFTON_CLOUDS", "assets/clifton_clouds.png"), (320, 180), screen, -80, BACKGROUND_OBJECT)
+CLIFTON_CLOUDS.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+CLIFTON_IGO = []
+CLIFTON_SGO = [CLIFTON_BACKGROUND, CLIFTON_BRIDGE, CLIFTON_CLOUDS]
+CLIFTON_GROUND_Y = 300
+ground_y = CLIFTON_GROUND_Y
+CLIFTON_MAP = Map("CLIFTON_MAP", CLIFTON_IGO, CLIFTON_SGO, CLIFTON_GROUND_Y)
+
+CLIFTON_GAME.add_players([CLIFTON_PLAYER1, CLIFTON_PLAYER2], [HITBOX_CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER2])
+CLIFTON_GAME.load_map(CLIFTON_MAP)
+
 #endregion
 
 #region TEST_GAME
