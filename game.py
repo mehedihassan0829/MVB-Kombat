@@ -323,7 +323,6 @@ class Player(pygame.sprite.Sprite):
 
     def update(self):
         if (self.dead): return
-        print(self.speed)
 
         if (self.health <= 0):
             if (self.game_ref.game_timer): self.game_ref.game_timer.kill()
@@ -724,6 +723,26 @@ class AI_Player(Player):
             
         opponent_dist = abs(self.rect.centerx - self.opponent_ref.rect.centerx)
         range = PUNCH_ATTACK_WIDTH + PLAYER_HITBOX_WIDTH
+
+        # maybe we can reach player using a jump
+        x_diff = self.opponent_ref.rect.x - self.rect.x
+        y_diff = self.opponent_ref.rect.y - self.rect.y
+
+        HORIZONTAL_LIMIT = 150
+        VERTICAL_LIMIT = -20 
+
+        if (y_diff < VERTICAL_LIMIT) and (abs(x_diff) <= HORIZONTAL_LIMIT) and (self.check_grounded()):
+            if x_diff < 0: # player is left of ai
+                self.direction_facing = LEFT
+                move = self.get_move_left()
+                self.rect.x -= min(move, abs(x_diff))
+            else:
+                self.direction_facing = RIGHT
+                move = self.get_move_right()
+                self.rect.x += min(move, abs(x_diff))
+
+            self.jump()
+            return
         
         # if our attack would land
         if opponent_dist <= range * 1.2:  # Slightly extended range
@@ -1867,7 +1886,6 @@ def load_wills():
     WILLS_AIPLAYER2.reset()
     
     if (ai_game): 
-        print("ai")
         WILLS_AIPLAYER2.reset_sprite(p2_character)
 
         WILLS_PLAYER1.attach_opponent(WILLS_AIPLAYER2, HITBOX_WILLS_AIPLAYER2)
@@ -2040,16 +2058,25 @@ def game_end_sequence():
     if (PLAYER2_WON in GAME_OVER_MENU.interactive_elements): GAME_OVER_MENU.interactive_elements.remove(PLAYER2_WON)
 
     if (current_game == MVB_GAME):
-        if (MVB_PLAYER1.health > MVB_PLAYER2.health):
+        if (ai_game): comphealth = MVB_AIPLAYER2.health
+        else: comphealth = MVB_PLAYER2.health 
+
+        if (MVB_PLAYER1.health > comphealth):
             GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
         else:
             GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
     elif (current_game == WILLS_GAME):
+        if (ai_game): comphealth = WILLS_AIPLAYER2.health
+        else: comphealth = WILLS_PLAYER2.health 
+
         if (WILLS_PLAYER1.health > WILLS_PLAYER2.health):
             GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
         else:
             GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
     elif (current_game == CLIFTON_GAME):
+        if (ai_game): comphealth = CLIFTON_AIPLAYER2.health
+        else: comphealth = CLIFTON_PLAYER2.health 
+
         if (CLIFTON_PLAYER1.health > CLIFTON_PLAYER2.health):
             GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
         else:
@@ -2081,7 +2108,7 @@ MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 SENATE_HOUSE = SpritedMenuObject(StaticSprite("SENATE_HOUSE", "assets/senate_house.png"), (320, 180), screen, -90, BACKGROUND_OBJECT, MAIN_MENU)
 SENATE_HOUSE.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-MAIN_MENU_LOGO = SpritedMenuObject(StaticSprite("LOGO", "assets/logo.png"), (75, 175), screen, -70, BACKGROUND_OBJECT, MAIN_MENU)
+MAIN_MENU_LOGO = SpritedMenuObject(StaticSprite("LOGO", "assets/logo.png"), (100, 175), screen, -70, BACKGROUND_OBJECT, MAIN_MENU)
 MAIN_MENU_LOGO.scale(3)
 
 MAIN_MENU_CLOUDS = SpritedMenuObject(StaticSprite("MAIN_MENU_CLOUDS", "assets/clifton_clouds.png"), (320, 180), screen, -95, BACKGROUND_OBJECT, MAIN_MENU)
@@ -2242,10 +2269,8 @@ GAME_OVER_HEADER = MenuText("GAME OVER", (SCREEN_WIDTH / 2, 100), 10, screen, TI
 GAME_OVER_MENU.interactive_elements.append(GAME_OVER_HEADER)
 
 PLAYER1_WON = MenuText("PLAYER 1 WON!", (SCREEN_WIDTH / 2, 200), 10, screen, TITLE_FONT, BLACK)
-#GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
 
 PLAYER2_WON = MenuText("PLAYER 2 WON!", (SCREEN_WIDTH / 2, 200), 10, screen, TITLE_FONT, BLACK)
-#GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
 
 GAME_OVER_MENU.add_button(BACK_BUTTON)
 
