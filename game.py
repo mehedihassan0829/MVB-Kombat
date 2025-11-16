@@ -66,11 +66,13 @@ PUNCHING = AnimatedSprite("PUNCHING", "assets/spritesheet_punch.png", 4)
 KICKING = AnimatedSprite("KICKING", "assets/spritesheet_kick.png", 4)
 JUMPING = AnimatedSprite("JUMPING", "assets/spritesheet_jump.png", 1)
 FLINCHING = AnimatedSprite("FLINCHING", "assets/spritesheet_flinch.png", 3)
+COLLAPSING = AnimatedSprite("COLLAPSING", "assets/spritesheet_collapse.png", 3)
+DEAD = AnimatedSprite("DEAD", "assets/spritesheet_dead.png", 1)
 
 DUMMY_IDLE = AnimatedSprite("IDLE", "assets/dummy_draft.png", 1)
 DUMMY_FLINCHING = AnimatedSprite("FLINCHING", "assets/dummy_draft.png", 1)
 
-DEFAULT_CHARACTER = [IDLE, PUNCHING, KICKING, JUMPING, FLINCHING]
+DEFAULT_CHARACTER = [IDLE, PUNCHING, KICKING, JUMPING, FLINCHING, COLLAPSING, DEAD]
 DUMMY_CHARACTER = [DUMMY_IDLE, DUMMY_FLINCHING]
 
 # FONT AND TEXT
@@ -159,6 +161,7 @@ class Player(pygame.sprite.Sprite):
         # gameplay
         self.frozen = False
         self.health = health
+        self.dead = False
         self.display_healthbar = display_healthbar
         self.direction_facing = direction
         self.is_jumping = False
@@ -232,7 +235,29 @@ class Player(pygame.sprite.Sprite):
             self.input_buffer = []
             self.trigger_large_attack()
 
+    def dead_animation(self):
+        self.current_animation = "DEAD"
+        if (self.current_animation in self.sprite_handler.anims):
+            self.sprite_handler.update_sprite(self.current_animation)
+        return
+
     def update(self):
+        if (self.dead): return
+
+        if (self.health <= 0):
+            if (self.game_ref.game_timer): self.game_ref.game_timer.kill()
+            SWIPESPRITE.change_sprite(GAME_OVER_SPRITE)
+            SWIPESPRITE.do_swipesprite_effect()
+            self.dead = True
+            for player in self.game_ref.players:
+                player.period_freeze(80)
+            Callback(game_end_sequence, 80)
+            self.current_animation = "COLLAPSING"
+            if (self.current_animation in self.sprite_handler.anims):
+                self.sprite_handler.update_sprite(self.current_animation)
+            Callback(self.dead_animation, ANIMATION_LATENCY * 3)
+            return
+
         global current_game
         if (not current_game): return
 
@@ -251,7 +276,7 @@ class Player(pygame.sprite.Sprite):
             self.is_jumping = True
             # doubles as a falling animation
             self.current_animation = "JUMPING"
-            if (not self.sprite_handler.anims.get(self.current_animation)): return
+            if not (self.current_animation in self.sprite_handler.anims): return
             self.sprite_handler.update_sprite(self.current_animation)
 
         if (self.is_jumping or self.vertical_velocity != 0):
@@ -451,7 +476,7 @@ class Player(pygame.sprite.Sprite):
 
     def do_animation_and_reset(self, anim):
         self.current_animation = anim
-        if (not self.sprite_handler.anims.get(self.current_animation)): return # we have not defined this animation
+        if not (self.current_animation in self.sprite_handler.anims): return # we have not defined this animation
         self.sprite_handler.update_sprite(self.current_animation)
         Callback(self.go_idle, len(self.sprite_handler.anims[self.current_animation]) * ANIMATION_LATENCY)
 
@@ -460,7 +485,7 @@ class Player(pygame.sprite.Sprite):
             self.is_jumping = True
             self.vertical_velocity = PLAYER_JUMPSPEED 
             self.current_animation = "JUMPING"
-            if (not self.sprite_handler.anims.get(self.current_animation)): return
+            if not (self.current_animation in self.sprite_handler.anims): return
             self.sprite_handler.update_sprite(self.current_animation)
 
     def fall_through(self):
@@ -481,7 +506,7 @@ class Player(pygame.sprite.Sprite):
             self.vertical_velocity = GRAVITY * 2
             
             self.current_animation = "JUMPING"
-            if (self.sprite_handler.anims.get(self.current_animation)): 
+            if not (self.current_animation in self.sprite_handler.anims): 
                 self.sprite_handler.update_sprite(self.current_animation)
 
     def undodge(self):
@@ -671,6 +696,10 @@ class Callback():
         global callbacks
         callbacks.remove(self)
 
+    def kill(self):
+        global callbacks
+        if (self in callbacks): callbacks.remove(self)
+
 class Repeat():
     def __init__(self, function, timedelay):
         self.function = function
@@ -689,28 +718,33 @@ class Repeat():
 
     def kill(self):
         global callbacks
-        callbacks.remove(self)
+        if (self in callbacks): callbacks.remove(self)
 
 class Timer():
     def __init__(self, callback_fun, time_in_seconds):
-        self.callback = callback_fun
+        self.callback_fun = callback_fun
         self.time_in_seconds = time_in_seconds
         self.repeat = None
+        self.callback = None
 
     def tick(self):
         self.time_in_seconds -= 1
 
     def start_ticking(self):
-        Callback(self.end_action, FPS * self.time_in_seconds)
+        self.callback = Callback(self.end_action, FPS * self.time_in_seconds)
         self.repeat = Repeat(self.tick, FPS)
 
     def end_action(self):
-        self.callback() # perform action
+        self.callback_fun() # perform action
         if (self.repeat): self.repeat.kill()
         self.time_in_seconds = 0
 
     def get_time(self):
         return self.time_in_seconds
+    
+    def kill(self):
+        if (self.callback): self.callback.kill()
+        if (self.repeat): self.repeat.kill()
 
 TOAST_WIDTH = SCREEN_WIDTH / 2
 TOAST_HEIGHT = 32 
@@ -827,6 +861,10 @@ class GameTimer(object):
             text = font.render(f"{self.timer.get_time()}s", True, WHITE)
             self.surface_ref.blit(self.image, self.rect)
             self.surface_ref.blit(text, (TIMER_X - 16, TIMER_Y - 16))
+
+    def kill(self):
+        self.hide_timer()
+        self.timer.kill()
 
 #endregion
 
@@ -1545,6 +1583,8 @@ def load_tutorial():
     ground_y = TUTORIAL_GROUND_Y
 
     TUTORIAL_PLAYER.reset_position()
+    TUTORIAL_PLAYER.dead = False
+    TUTORIAL_PLAYER.go_idle()
 
 def change_game_to_tutorial():
     global current_menu 
@@ -1573,6 +1613,8 @@ def load_wills():
     for player in WILLS_GAME.players:
         player.reset_position()
         player.health = PLAYER_HEALTH
+        player.dead = False
+        player.go_idle()
     
     WILLS_PLAYER1.jump()
     WILLS_PLAYER2.jump()
@@ -1589,6 +1631,8 @@ def load_mvb():
     for player in MVB_GAME.players:
         player.reset_position()
         player.health = PLAYER_HEALTH
+        player.dead = False
+        player.go_idle()
 
 def load_clifton():
     SCREENSWIPE.do_effect()
@@ -1604,6 +1648,8 @@ def load_clifton():
     for player in CLIFTON_GAME.players:
         player.reset_position()
         player.health = PLAYER_HEALTH
+        player.dead = False
+        player.go_idle()
 
 def countdown_sequence():
     COUNTDOWN.current_count = 0
@@ -1682,11 +1728,11 @@ def game_end_sequence():
             GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
         else:
             GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
-    # elif (current_game == CLIFTON_GAME):
-    #     if (CLIFTON_PLAYER1.health > CLIFTON_PLAYER2.health):
-    #         GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
-    #     else:
-    #         GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
+    elif (current_game == CLIFTON_GAME):
+        if (CLIFTON_PLAYER1.health > CLIFTON_PLAYER2.health):
+            GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
+        else:
+            GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
 
     load_game_over_menu()
 
