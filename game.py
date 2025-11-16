@@ -449,6 +449,9 @@ class Player(pygame.sprite.Sprite):
         self.frozen = True
         Callback(self.unfreeze, time)
 
+    def freeze(self):
+        self.frozen = True
+
     def unfreeze(self):
         self.frozen = False
         
@@ -724,12 +727,17 @@ class GameTimer(object):
     def timer_end(self):
         if (not self.overtime):
             self.hide_timer()
-            OVERTIME.do_overtime_effect()
+            SWIPESPRITE.do_swipesprite_effect()
             for player in self.game_ref.players:
                 player.period_freeze(80) 
             Callback(lambda: self.start_timer(OVERTIME_LENGTH), 80)
+            self.overtime = True
         else:
-            pass
+            SWIPESPRITE.change_sprite(GAME_OVER_SPRITE)
+            SWIPESPRITE.do_swipesprite_effect()
+            for player in self.game_ref.players:
+                player.period_freeze(80)
+            Callback(game_end_sequence, 80)
 
     def update(self):
         if (self.show):
@@ -1092,7 +1100,7 @@ class Screenswipe(pygame.sprite.Sprite):
 
     def do_effect(self):
         global current_game
-        Callback(self.reset, 120)
+        Callback(self.reset, 30)
         self.repeat = Repeat(self.update, 1)
 
     def reset(self):
@@ -1208,14 +1216,15 @@ OVERTIME_PAUSE_FRAMES = 40
 OVERTIME_ACCELERATION_FRAMES = 20
 
 OVERTIME_SPRITE = "assets/overtime.png"
+GAME_OVER_SPRITE = "assets/game_over.png"
 
-class Overtime(pygame.sprite.Sprite):
-    def __init__(self, surface):
+class SwipeSprite(pygame.sprite.Sprite):
+    def __init__(self, surface, sprite_path):
         super().__init__()
         self.current_count = 0
         self.image2 = pygame.image.load(TRANSLUCENT_OVERLAY).convert_alpha()
         self.image2 = pygame.transform.scale(self.image2, (SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.image = pygame.image.load(OVERTIME_SPRITE).convert_alpha()
+        self.image = pygame.image.load(sprite_path).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect2 = self.image2.get_rect()
         self.rect.center = (OVERTIME_START_X, OVERTIME_CENTRE_Y)
@@ -1228,6 +1237,9 @@ class Overtime(pygame.sprite.Sprite):
         self.current_speed = 0
 
         self.overlay_active = False
+
+    def change_sprite(self, new_sprite_path):
+        self.image = pygame.image.load(new_sprite_path).convert_alpha()
 
     def update(self):
         if self.state == "DECELERATE":
@@ -1259,7 +1271,7 @@ class Overtime(pygame.sprite.Sprite):
         if (self.overlay_active): self.surface_ref.blit(self.image2, self.rect2)
         self.surface_ref.blit(self.image, self.rect)
 
-    def do_overtime_effect(self):
+    def do_swipesprite_effect(self):
         self.overlay_active = True
         self.do_effect()
         Callback(self.disable_overlay, 80)
@@ -1291,7 +1303,7 @@ class Overtime(pygame.sprite.Sprite):
 
 SCREENSWIPE = Screenswipe(StaticSprite("SCREENSWIPE", "assets/screen_swipe.png"), screen)
 COUNTDOWN = Countdown(screen)
-OVERTIME = Overtime(screen)
+SWIPESPRITE = SwipeSprite(screen, OVERTIME_SPRITE)
 
 class BackgroundMusic(object):
     def __init__(self, music_file):
@@ -1419,6 +1431,28 @@ def change_to_settings_menu():
 def show_settings_widgets():
     for w in SETTINGS_WIDGETS: w.show()
 
+def load_map_select_menu():
+    SCREENSWIPE.do_effect()
+    Callback(change_to_map_menu, 15)
+
+def change_to_map_menu():
+    global current_menu 
+    current_menu = MAP_SELECT_MENU
+    global current_game 
+    current_game = None
+    # change_bgm(MAIN_MENU_AUDIO)
+
+def load_game_over_menu():
+    SCREENSWIPE.do_effect()
+    Callback(change_to_gameover_menu, 15)
+
+def change_to_gameover_menu():
+    global current_menu 
+    current_menu = GAME_OVER_MENU
+    global current_game 
+    current_game = None
+    # change_bgm(MAIN_MENU_AUDIO)
+
 def load_tutorial():
     SCREENSWIPE.do_effect()
     Callback(change_game_to_tutorial, 15)
@@ -1435,17 +1469,26 @@ def change_game_to_tutorial():
     current_game = TUTORIAL_GAME
     change_bgm(TUTORIAL_AUDIO)
 
+def random_move_hotairballoon():
+    mult = 1
+    if (HOT_AIR_BALLOON.rect.x > SCREEN_WIDTH - 100): mult = -1
+    if (HOT_AIR_BALLOON.rect.x < 100): mult = 1
+    HOT_AIR_BALLOON.rect.move_ip(random.randint(1, 2) * mult, random.randint(-1, 1))
+
 def load_wills():
     SCREENSWIPE.do_effect()
     Callback(change_game_to_wills, 15)
     Callback(countdown_sequence, 60)
     Callback(disable_countdown_overlay, 243) 
 
+    Repeat(random_move_hotairballoon, 30)
+
     global ground_y
     ground_y = WILLS_GROUND_Y
 
     for player in WILLS_GAME.players:
         player.reset_position()
+        player.health = PLAYER_HEALTH
     
     WILLS_PLAYER1.jump()
     WILLS_PLAYER2.jump()
@@ -1461,9 +1504,7 @@ def load_mvb():
 
     for player in MVB_GAME.players:
         player.reset_position()
-
-    MVB_PLAYER1.jump()
-    MVB_PLAYER2.jump()
+        player.health = PLAYER_HEALTH
 
 def countdown_sequence():
     COUNTDOWN.current_count = 0
@@ -1510,6 +1551,28 @@ def start_wills():
     change_bgm(WILLS_GAME_AUDIO)
     current_game.game_timer.start_timer(GAME_LENGTH)
 
+def game_end_sequence():
+    if (PLAYER1_WON in GAME_OVER_MENU.interactive_elements): GAME_OVER_MENU.interactive_elements.remove(PLAYER1_WON)
+    if (PLAYER2_WON in GAME_OVER_MENU.interactive_elements): GAME_OVER_MENU.interactive_elements.remove(PLAYER2_WON)
+
+    if (current_game == MVB_GAME):
+        if (MVB_PLAYER1.health > MVB_PLAYER2.health):
+            GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
+        else:
+            GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
+    elif (current_game == WILLS_GAME):
+        if (WILLS_PLAYER1.health > WILLS_PLAYER2.health):
+            GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
+        else:
+            GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
+    # elif (current_game == CLIFTON_GAME):
+    #     if (CLIFTON_PLAYER1.health > CLIFTON_PLAYER2.health):
+    #         GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
+    #     else:
+    #         GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
+
+    load_game_over_menu()
+
 #endregion
 
 #region MAIN MENU
@@ -1521,7 +1584,7 @@ MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH / 2, 225), 10)
 MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_settings_menu, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
-MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_wills, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
+MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_map_select_menu, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
 MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_char_menu, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH / 2, 450), 10)
 
 MAIN_MENU.add_button(MAIN_MENU_TUTORIAL_BUTTON)
@@ -1533,7 +1596,7 @@ MAIN_MENU.add_button(MAIN_MENU_CHARACTER_BUTTON)
 #region CHARACTER MENU
 CHARACTER_MENU = Menu()
 
-CHAR_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, CHARACTER_MENU)
+CHAR_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("CHARACTER_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, CHARACTER_MENU)
 CHAR_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 CHAR_MENU_TITLE = MenuText("CHARACTER MENU", (SCREEN_WIDTH / 2, 50), 10, screen, TITLE_FONT, BLACK)
@@ -1595,6 +1658,45 @@ SETTINGS_MENU.interactive_elements.append(TEXT_SAMPLE_2)
 
 BACK_BUTTON = Button(screen, change_to_main_menu, StaticSprite("BACK_BUTTON", "assets/button_placeholder.png"), (100, 100), 10)
 SETTINGS_MENU.add_button(BACK_BUTTON)
+
+#endregion
+
+#region MAP MENU
+MAP_SELECT_MENU = Menu()
+
+MAP_SELECT_BUTTONS = [
+    Button(screen, load_mvb, StaticSprite("MVB_BUTTON", "assets/mvb_map_button.png"), (190, 338), 10),
+    Button(screen, load_wills, StaticSprite("WILLS_BUTTON", "assets/wills_map_button.png"), (515, 338), 10),
+    Button(screen, load_wills, StaticSprite("CLIFTON_BUTTON", "assets/map_button_placeholder.png"), (840, 338), 10)
+]
+
+MAP_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAP_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAP_SELECT_MENU)
+MAP_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+MAP_MENU_TITLE = MenuText("MAPS", (SCREEN_WIDTH / 2, 50), 10, screen, TITLE_FONT, BLACK)
+MAP_SELECT_MENU.interactive_elements.append(MAP_MENU_TITLE)
+
+for button in MAP_SELECT_BUTTONS:
+    MAP_SELECT_MENU.add_button(button)
+
+#endregion
+
+#region GAME OVER MENU
+GAME_OVER_MENU = Menu()
+
+GAME_OVER_BACKGROUND = SpritedMenuObject(StaticSprite("GAME_OVER_MENU_BACKGROUND", "assets/game_over_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, GAME_OVER_MENU)
+GAME_OVER_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+GAME_OVER_HEADER = MenuText("GAME OVER", (SCREEN_WIDTH / 2, 100), 10, screen, TITLE_FONT, RED)
+GAME_OVER_MENU.interactive_elements.append(GAME_OVER_HEADER)
+
+PLAYER1_WON = MenuText("PLAYER 1 WON!", (SCREEN_WIDTH / 2, 200), 10, screen, TITLE_FONT, BLACK)
+#GAME_OVER_MENU.interactive_elements.append(PLAYER1_WON)
+
+PLAYER2_WON = MenuText("PLAYER 2 WON!", (SCREEN_WIDTH / 2, 200), 10, screen, TITLE_FONT, BLACK)
+#GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
+
+GAME_OVER_MENU.add_button(BACK_BUTTON)
 
 #endregion
 
@@ -1691,6 +1793,9 @@ WILLS_PLAYER2.attach_opponent(WILLS_PLAYER1, HITBOX_WILLS_PLAYER1)
 WILLS_BACKGROUND = SpritedGameObject(StaticSprite("WILLS_BACKGROUND", "assets/wills_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT)
 WILLS_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+HOT_AIR_BALLOON = SpritedGameObject(StaticSprite("HOT_AIR_BALLOON", "assets/hot_air_balloon.png"), (300, 100), screen, 15, FOREGROUND_OBJECT)
+HOT_AIR_BALLOON.scale(2)
+
 WILLS_ROAD_BUILDING1 = Platform((170, 16), (595, 225), screen)
 WILLS_ROAD_BUILDING2 = Platform((170, 16), (765, 255), screen)
 WILLS_ROAD_BUILDING3 = Platform((170, 16), (935, 305), screen)
@@ -1703,7 +1808,7 @@ WILLS_ROAD_PLAT5 = Platform((80, 16), (770, 505), screen)
 WILLS_ROAD_PLAT6 = Platform((200, 16), (900, 520), screen)
 
 WILLS_IGO = [WILLS_ROAD_BUILDING1, WILLS_ROAD_BUILDING2, WILLS_ROAD_BUILDING3, WILLS_MEM_PLAT1, WILLS_ROAD_PLAT1, WILLS_ROAD_PLAT2, WILLS_ROAD_PLAT3, WILLS_ROAD_PLAT4, WILLS_ROAD_PLAT5, WILLS_ROAD_PLAT6]
-WILLS_SGO = [WILLS_BACKGROUND]
+WILLS_SGO = [WILLS_BACKGROUND, HOT_AIR_BALLOON]
 WILLS_GROUND_Y = 450
 ground_y = WILLS_GROUND_Y
 WILLS_MAP = Map("WILLS_MAP", WILLS_IGO, WILLS_SGO, WILLS_GROUND_Y)
@@ -1791,7 +1896,7 @@ while True:
 
     SCREENSWIPE.draw()
     COUNTDOWN.draw()
-    OVERTIME.draw()
+    SWIPESPRITE.draw()
     pygame_widgets.update(events)
 
     pygame.display.update()
