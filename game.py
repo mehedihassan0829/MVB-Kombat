@@ -1891,17 +1891,13 @@ def load_wills():
         WILLS_PLAYER1.attach_opponent(WILLS_AIPLAYER2, HITBOX_WILLS_AIPLAYER2)
         WILLS_AIPLAYER2.attach_opponent(WILLS_PLAYER1, HITBOX_WILLS_PLAYER1)
 
-        if (WILLS_PLAYER2 in WILLS_GAME.players): WILLS_GAME.players.remove(WILLS_PLAYER2)
-        if (HITBOX_WILLS_PLAYER2 in WILLS_GAME.players): WILLS_GAME.player_hitboxes.remove(HITBOX_WILLS_PLAYER2)
-
         WILLS_GAME.add_players([WILLS_AIPLAYER2], [HITBOX_WILLS_AIPLAYER2])
         WILLS_AIPLAYER2.jump()
     else:
         WILLS_PLAYER2.reset_sprite(p2_character)
-        WILLS_PLAYER1.attach_opponent(WILLS_PLAYER2, HITBOX_WILLS_PLAYER2)
 
-        if (WILLS_AIPLAYER2 in WILLS_GAME.players): WILLS_GAME.players.remove(WILLS_AIPLAYER2)
-        if (HITBOX_WILLS_AIPLAYER2 in WILLS_GAME.players): WILLS_GAME.player_hitboxes.remove(HITBOX_WILLS_AIPLAYER2)
+        WILLS_PLAYER1.attach_opponent(WILLS_PLAYER2, HITBOX_WILLS_PLAYER2)
+        WILLS_PLAYER2.attach_opponent(WILLS_PLAYER1, HITBOX_WILLS_PLAYER1)
 
         WILLS_GAME.add_players([WILLS_PLAYER2], [HITBOX_WILLS_PLAYER2])
         WILLS_PLAYER2.jump()
@@ -1933,16 +1929,12 @@ def load_mvb():
         MVB_PLAYER1.attach_opponent(MVB_AIPLAYER2, HITBOX_MVB_AIPLAYER2)
         MVB_AIPLAYER2.attach_opponent(MVB_PLAYER1, HITBOX_MVB_PLAYER1)
 
-        if (MVB_PLAYER2 in MVB_GAME.players): MVB_GAME.players.remove(MVB_PLAYER2)
-        if (HITBOX_MVB_PLAYER2 in MVB_GAME.players): MVB_GAME.player_hitboxes.remove(HITBOX_MVB_PLAYER2)
-
         MVB_GAME.add_players([MVB_AIPLAYER2], [HITBOX_MVB_AIPLAYER2])
     else:
         MVB_PLAYER2.reset_sprite(p2_character)
-        MVB_PLAYER1.attach_opponent(MVB_PLAYER2, HITBOX_MVB_PLAYER2)
 
-        if (MVB_AIPLAYER2 in MVB_GAME.players): MVB_GAME.players.remove(MVB_AIPLAYER2)
-        if (HITBOX_MVB_AIPLAYER2 in MVB_GAME.players): MVB_GAME.player_hitboxes.remove(HITBOX_MVB_AIPLAYER2)
+        MVB_PLAYER1.attach_opponent(MVB_PLAYER2, HITBOX_MVB_PLAYER2)
+        MVB_PLAYER2.attach_opponent(MVB_PLAYER1, HITBOX_MVB_PLAYER1)
 
         MVB_GAME.add_players([MVB_PLAYER2], [HITBOX_MVB_PLAYER2])
 
@@ -1974,16 +1966,12 @@ def load_clifton():
         CLIFTON_PLAYER1.attach_opponent(CLIFTON_AIPLAYER2, HITBOX_CLIFTON_AIPLAYER2)
         CLIFTON_AIPLAYER2.attach_opponent(CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER1)
 
-        if (CLIFTON_PLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.players.remove(CLIFTON_PLAYER2)
-        if (HITBOX_CLIFTON_PLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.player_hitboxes.remove(HITBOX_CLIFTON_PLAYER2)
-
         CLIFTON_GAME.add_players([CLIFTON_AIPLAYER2], [HITBOX_CLIFTON_AIPLAYER2])
     else:
         CLIFTON_PLAYER2.reset_sprite(p2_character)
+        
         CLIFTON_PLAYER1.attach_opponent(CLIFTON_PLAYER2, HITBOX_CLIFTON_PLAYER2)
-
-        if (CLIFTON_AIPLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.players.remove(CLIFTON_AIPLAYER2)
-        if (HITBOX_CLIFTON_AIPLAYER2 in CLIFTON_GAME.players): CLIFTON_GAME.player_hitboxes.remove(HITBOX_CLIFTON_AIPLAYER2)
+        CLIFTON_PLAYER2.attach_opponent(CLIFTON_PLAYER1, HITBOX_CLIFTON_PLAYER1)
 
         CLIFTON_GAME.add_players([CLIFTON_PLAYER2], [HITBOX_CLIFTON_PLAYER2])
 
