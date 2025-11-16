@@ -1524,6 +1524,8 @@ def change_to_main_menu():
     global current_game 
     current_game = None
     change_bgm(MAIN_MENU_AUDIO)
+
+    Repeat(random_move_mainclouds, 30)
     
     for w in SETTINGS_WIDGETS: w.hide()
 
@@ -1742,6 +1744,12 @@ def random_move_cliftonclouds():
     if (CLIFTON_CLOUDS.rect.x < -20): mult = 1
     CLIFTON_CLOUDS.rect.move_ip(random.randint(-2, 2) * mult, random.randint(-1, 1))
 
+def random_move_mainclouds():
+    mult = 1
+    if (MAIN_MENU_CLOUDS.rect.x > 20): mult = -1
+    if (MAIN_MENU_CLOUDS.rect.x < -20): mult = 1
+    MAIN_MENU_CLOUDS.rect.move_ip(random.randint(-2, 2) * mult, random.randint(-1, 1))
+
 #endregion
 
 #region MAIN MENU
@@ -1751,10 +1759,19 @@ MAIN_MENU_AUDIO = BackgroundMusic(SoundFile("MAIN_MENU_BGM", "audio/main_menu_lo
 MAIN_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAIN_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAIN_MENU)
 MAIN_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH / 2, 225), 10)
-MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_settings_menu, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH / 2, 300), 10)
-MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_map_select_menu, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH / 2, 375), 10)
-MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_char_menu, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH / 2, 450), 10)
+SENATE_HOUSE = SpritedMenuObject(StaticSprite("SENATE_HOUSE", "assets/senate_house.png"), (320, 180), screen, -90, BACKGROUND_OBJECT, MAIN_MENU)
+SENATE_HOUSE.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+MAIN_MENU_LOGO = SpritedMenuObject(StaticSprite("LOGO", "assets/logo.png"), (75, 175), screen, -70, BACKGROUND_OBJECT, MAIN_MENU)
+MAIN_MENU_LOGO.scale(3)
+
+MAIN_MENU_CLOUDS = SpritedMenuObject(StaticSprite("MAIN_MENU_CLOUDS", "assets/clifton_clouds.png"), (320, 180), screen, -95, BACKGROUND_OBJECT, MAIN_MENU)
+MAIN_MENU_CLOUDS.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+MAIN_MENU_TUTORIAL_BUTTON = Button(screen, load_tutorial, StaticSprite("TUTORIAL_BUTTON", "assets/tutorial_button.png"), (SCREEN_WIDTH - 150, 180), 10)
+MAIN_MENU_SINGLEPLAYER_BUTTON = Button(screen, load_settings_menu, StaticSprite("SINGLEPLAYER_BUTTON", "assets/singleplayer_button.png"), (SCREEN_WIDTH - 150, 250), 10)
+MAIN_MENU_MULTIPLAYER_BUTTON = Button(screen, load_map_select_menu, StaticSprite("MULTIPLAYER_BUTTON", "assets/multiplayer_button.png"), (SCREEN_WIDTH - 150, 320), 10)
+MAIN_MENU_CHARACTER_BUTTON = Button(screen, load_char_menu, StaticSprite("CHARACTER_BUTTON", "assets/character_menu_button.png"), (SCREEN_WIDTH - 150, 390), 10)
 
 MAIN_MENU.add_button(MAIN_MENU_TUTORIAL_BUTTON)
 MAIN_MENU.add_button(MAIN_MENU_SINGLEPLAYER_BUTTON)
