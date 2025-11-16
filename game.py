@@ -25,6 +25,9 @@ bgm_loaded = False
 current_bgm = None
 hicontrast = False
 
+PAUSE_MENU = None
+paused_game = None
+
 # SETTINGS
 
 bgm_volume = 1
@@ -1782,7 +1785,7 @@ MAIN_MENU.add_button(MAIN_MENU_CHARACTER_BUTTON)
 #region CHARACTER MENU
 CHARACTER_MENU = Menu()
 
-CHAR_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("CHARACTER_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, CHARACTER_MENU)
+CHAR_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("CHARACTER_MENU_BACKGROUND", "assets/settings_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, CHARACTER_MENU)
 CHAR_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 CHAR_MENU_TITLE = MenuText("CHARACTER MENU", (SCREEN_WIDTH / 2, 50), 10, screen, TITLE_FONT, BLACK)
@@ -1815,12 +1818,15 @@ for i in range(6):
     name_text = MenuText(name, (name_center_x, name_center_y), 10, screen, SUBTITLE_FONT, BLACK)
     CHARACTER_MENU.interactive_elements.append(name_text)
 
+BACK_BUTTON = Button(screen, change_to_main_menu, StaticSprite("BACK_BUTTON", "assets/back_arrow.png"), (50, 50), 10)
+CHARACTER_MENU.add_button(BACK_BUTTON)
+
 #endregion
 
 #region SETTINGS MENU
 SETTINGS_MENU = Menu()
 
-SETTINGS_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("SETTINGS_MENU_BACKGROUND", "assets/settings_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, SETTINGS_MENU)
+SETTINGS_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("SETTINGS_MENU_BACKGROUND", "assets/settings_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, SETTINGS_MENU)
 SETTINGS_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 SETTINGS_HEADER = MenuText("SETTINGS", (SCREEN_WIDTH / 2, 100), 10, screen, TITLE_FONT, BLACK)
@@ -1842,7 +1848,7 @@ SETTINGS_MENU.interactive_elements.append(TEXT_HEADER)
 SETTINGS_MENU.interactive_elements.append(TEXT_SAMPLE_1)
 SETTINGS_MENU.interactive_elements.append(TEXT_SAMPLE_2)
 
-BACK_BUTTON = Button(screen, change_to_main_menu, StaticSprite("BACK_BUTTON", "assets/button_placeholder.png"), (100, 100), 10)
+BACK_BUTTON = Button(screen, change_to_main_menu, StaticSprite("BACK_BUTTON", "assets/back_arrow.png"), (50, 50), 10)
 SETTINGS_MENU.add_button(BACK_BUTTON)
 
 #endregion
@@ -1856,7 +1862,7 @@ MAP_SELECT_BUTTONS = [
     Button(screen, load_clifton, StaticSprite("CLIFTON_BUTTON", "assets/clifton_map_button.png"), (840, 338), 10)
 ]
 
-MAP_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAP_MENU_BACKGROUND", "assets/main_menu_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAP_SELECT_MENU)
+MAP_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("MAP_MENU_BACKGROUND", "assets/settings_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, MAP_SELECT_MENU)
 MAP_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 MAP_MENU_TITLE = MenuText("MAPS", (SCREEN_WIDTH / 2, 50), 10, screen, TITLE_FONT, BLACK)
@@ -1870,7 +1876,7 @@ for button in MAP_SELECT_BUTTONS:
 #region GAME OVER MENU
 GAME_OVER_MENU = Menu()
 
-GAME_OVER_BACKGROUND = SpritedMenuObject(StaticSprite("GAME_OVER_MENU_BACKGROUND", "assets/game_over_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, GAME_OVER_MENU)
+GAME_OVER_BACKGROUND = SpritedMenuObject(StaticSprite("GAME_OVER_MENU_BACKGROUND", "assets/settings_background.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, GAME_OVER_MENU)
 GAME_OVER_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 GAME_OVER_HEADER = MenuText("GAME OVER", (SCREEN_WIDTH / 2, 100), 10, screen, TITLE_FONT, RED)
@@ -1883,6 +1889,63 @@ PLAYER2_WON = MenuText("PLAYER 2 WON!", (SCREEN_WIDTH / 2, 200), 10, screen, TIT
 #GAME_OVER_MENU.interactive_elements.append(PLAYER2_WON)
 
 GAME_OVER_MENU.add_button(BACK_BUTTON)
+
+#endregion
+
+#region PAUSE MENU
+
+def pause_game():
+    global current_menu, paused_game, current_bgm
+    
+    if not current_game: return
+    paused_game = current_game
+
+    for player in paused_game.players:
+        player.freeze()
+
+    if current_bgm:
+        current_bgm.pause()
+
+    current_menu = PAUSE_MENU
+
+def resume_game():
+    global current_menu, paused_game, current_bgm
+
+    if not paused_game:
+        current_menu = None
+        return
+
+    for p in paused_game.players:
+        p.unfreeze()
+
+    if current_bgm:
+        current_bgm.unpause()
+
+    current_menu = None
+    paused_game = None
+
+def quit_to_main_from_pause():
+    global paused_game
+
+    if paused_game:
+        for player in paused_game.players:
+            player.unfreeze()
+
+    paused_game = None
+    change_to_main_menu()
+
+PAUSE_MENU = Menu()
+PAUSE_MENU_BACKGROUND = SpritedMenuObject(StaticSprite("PAUSE_MENU_BACKGROUND", "assets/overlay.png"), (320, 180), screen, -100, BACKGROUND_OBJECT, PAUSE_MENU)
+PAUSE_MENU_BACKGROUND.change_dimensions((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+PAUSE_TITLE = MenuText("GAME PAUSED", (SCREEN_WIDTH / 2, 120), 10, screen, TITLE_FONT, BLACK)
+PAUSE_MENU.interactive_elements.append(PAUSE_TITLE)
+
+PAUSE_RESUME = Button(screen, resume_game, StaticSprite("PAUSE_RESUME", "assets/unpause_button.png"), (SCREEN_WIDTH / 2, 180), 10)
+PAUSE_QUIT = Button(screen, quit_to_main_from_pause, StaticSprite("PAUSE_QUIT", "assets/quit_button.png"), (SCREEN_WIDTH / 2, 230), 10)
+
+PAUSE_MENU.add_button(PAUSE_RESUME)
+PAUSE_MENU.add_button(PAUSE_QUIT)
 
 #endregion
 
@@ -2095,13 +2158,21 @@ while True:
                 if isinstance(element, Button):
                     element.handle_click(event)
 
+        if (event.type == pygame.KEYDOWN) and (event.key == pygame.K_ESCAPE):
+            if current_game and (current_menu is None):
+                pause_game()
+            elif (current_menu is PAUSE_MENU):
+                resume_game()
+
     # game code
     screen.fill(WHITE)
 
     if (current_menu):
+        if (current_menu is PAUSE_MENU) and current_game:
+            current_game.redraw_frame()   # draw frozen game as background
         current_menu.redraw_frame()
-
         if (current_menu == SETTINGS_MENU):
+            # existing settings code...
             hicontrast = HICONTRAST_BUTTON.getValue()
             bgm_volume = 1 + (MUSIC_SLIDER.getValue() - 5) * 0.2
             sfx_volume = 1 + (SOUND_SLIDER.getValue() - 5) * 0.2
@@ -2109,12 +2180,12 @@ while True:
             font = pygame.font.Font(FONTFACE, fontsize)
 
             if (current_bgm): current_bgm.set_volume(bgm_volume)
-
     elif (current_game):
         current_game.redraw_frame()
 
-    for callback in callbacks:
-        callback.process()
+    if (current_menu is not PAUSE_MENU):
+        for callback in callbacks:
+            callback.process()
 
     SCREENSWIPE.draw()
     COUNTDOWN.draw()
