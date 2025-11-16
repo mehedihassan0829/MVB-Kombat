@@ -550,7 +550,7 @@ class Player(pygame.sprite.Sprite):
         self.do_animation_and_reset("KICKING")
 
     def trigger_large_attack(self):
-        print("large attack")
+        # print("large attack")
         # stop other attacks
         self.punched = True
         # go back to normal after large attack done
@@ -648,7 +648,7 @@ class Player(pygame.sprite.Sprite):
         if (self.dodging): return
 
         self.health -= amount
-        print(f"player damaged {amount} hp and now has {self.health} hp left")
+        # print(f"player damaged {amount} hp and now has {self.health} hp left")
 
         hurt_sound = HURT
         hurt_sound.play()
@@ -658,7 +658,7 @@ class Player(pygame.sprite.Sprite):
         HitNotif(amount, self, self.surface_ref, special)
 
         health_ratio = max(self.health, 0) / PLAYER_HEALTH
-        print(health_ratio)
+        # print(health_ratio)
 
         if source_direction is None:
             if self.opponent_ref:
@@ -680,7 +680,7 @@ class Player(pygame.sprite.Sprite):
         self.frozen = True
         Callback(self.unfreeze, stun_time)
 
-        print("yes")
+        # print("yes")
         self.do_animation_and_reset("FLINCHING")
 
     def period_freeze(self, time):
@@ -927,7 +927,7 @@ class KickAttack(pygame.sprite.Sprite):
 
 class Callback():
     def __init__(self, function, time_in_frames):
-        self.function = function
+        self.fun_ref = function
         self.time_in_frames = time_in_frames
         global callbacks
         callbacks.append(self)
@@ -937,7 +937,7 @@ class Callback():
         if (self.time_in_frames <= 0): self.invoke()
 
     def invoke(self):
-        self.function()
+        self.fun_ref()
         global callbacks
         callbacks.remove(self)
 
@@ -1085,19 +1085,22 @@ class GameTimer(object):
         self.show_timer()
 
     def timer_end(self):
-        if (not self.overtime):
-            self.hide_timer()
-            SWIPESPRITE.do_swipesprite_effect()
-            for player in self.game_ref.players:
-                player.period_freeze(80) 
-            Callback(lambda: self.start_timer(OVERTIME_LENGTH), 80)
-            self.overtime = True
-        else:
-            SWIPESPRITE.change_sprite(GAME_OVER_SPRITE)
-            SWIPESPRITE.do_swipesprite_effect()
-            for player in self.game_ref.players:
-                player.period_freeze(80)
-            Callback(game_end_sequence, 80)
+        try:
+            if (not self.overtime):
+                self.hide_timer()
+                SWIPESPRITE.do_swipesprite_effect()
+                for player in self.game_ref.players:
+                    player.period_freeze(300) 
+                Callback(lambda: self.start_timer(OVERTIME_LENGTH), 80)
+                self.overtime = True
+            else:
+                SWIPESPRITE.change_sprite(GAME_OVER_SPRITE)
+                SWIPESPRITE.do_swipesprite_effect()
+                for player in self.game_ref.players:
+                    player.period_freeze(300)
+                Callback(game_end_sequence, 80)
+        except:
+            game_end_sequence()
 
     def update(self):
         if (self.show):
@@ -1655,7 +1658,7 @@ class SwipeSprite(pygame.sprite.Sprite):
         Callback(self.disable_overlay, 80)
         Callback(self.swipesprite_end, 85)
 
-    def swipesprite_end():
+    def swipesprite_end(self):
         global in_cutscene
         in_cutscene = False
 
@@ -1930,7 +1933,7 @@ def load_mvb():
     MVB_AIPLAYER2.reset()
 
     if (ai_game): 
-        print("ai")
+        # print("ai")
         MVB_AIPLAYER2.reset_sprite(p2_character)
 
         MVB_PLAYER1.attach_opponent(MVB_AIPLAYER2, HITBOX_MVB_AIPLAYER2)
@@ -1967,7 +1970,7 @@ def load_clifton():
     CLIFTON_AIPLAYER2.reset()
 
     if (ai_game): 
-        print("ai")
+        # print("ai")
         CLIFTON_AIPLAYER2.reset_sprite(p2_character)
 
         CLIFTON_PLAYER1.attach_opponent(CLIFTON_AIPLAYER2, HITBOX_CLIFTON_AIPLAYER2)
